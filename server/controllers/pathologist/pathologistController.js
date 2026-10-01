@@ -192,8 +192,8 @@ const getAllPathologyTests = async (req, res) => {
   const tests = await PathologyTest.find().populate("pathologist");
 
   if (!tests) {
-    res.status(409);
-    throw new Error("Tests Does Not Found...");
+    res.status(404);
+    throw new Error("Test Does Not Exist...");
   }
 
   res.status(200).json(tests);

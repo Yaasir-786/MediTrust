@@ -100,6 +100,8 @@ const findMedicines = async (req, res) => {
   const pathologists = await Pathologist.find();
   const prescription = await Prescription.findById(pid);
 
+  const payload = { products, pathologists, medicines: prescription.medicines };
+
   const MEDICINE_FOUNDER_PROMPT = `You are a medicine and pathology-test availability checker for a healthcare platform.
 
 You will receive THREE pieces of data in JSON:
@@ -115,6 +117,8 @@ If any prescription line looks like a lab test / diagnostic order rather than a 
 OUTPUT FORMAT — return ONLY valid JSON, no preamble, no markdown fences:
 
 {
+  "products": <the exact "products" array from the input, unmodified>,
+  "pathologists": <the exact "pathologists" array from the input, unmodified>,
   "medicines": [
     {
       "prescribed_name": "<name as it appeared on prescription>",
@@ -157,7 +161,7 @@ RULES:
 - Be conservative: if you're not reasonably confident of a match, set matched_product_name to null and available to false rather than guessing.
 - Do not include any explanation outside the JSON object.
 
-Here is the data: ${{ products, pathologists, medicines: prescription.medicines }}
+Here is the data: ${JSON.stringify(payload)}
 `;
 
   try {
@@ -183,8 +187,6 @@ Here is the data: ${{ products, pathologists, medicines: prescription.medicines 
     res.status(409);
     throw new Error("Error In Getting Data From Server!");
   }
-
-  res.json({ products, pathologists, medicines: prescription.medicines });
 };
 
 const chatWithAi = async (req, res) => {

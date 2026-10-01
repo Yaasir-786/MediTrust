@@ -31,7 +31,7 @@ const userRegister = async (req, res) => {
     password: hashedPassword,
   });
 
-  res.status(200).json(user);
+  res.status(200).json({ message: "Account SuccessFully Has Been Created..." });
 };
 
 const userLogin = async (req, res) => {

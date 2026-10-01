@@ -5,11 +5,7 @@ import protect from "../middleware/authMiddleware.js";
 const router = express.Router();
 
 router.get("/", pathologistController.getAllPathologists);
-router.get(
-  "/tests",
-  protect.forUser,
-  pathologistController.getAllPathologyTests,
-);
+router.get("/tests", pathologistController.getAllPathologyTests);
 router.get(
   "/appointments",
   protect.forUser,

@@ -23,6 +23,7 @@ const forUser = async (req, res, next) => {
       throw new Error("No Token Found...");
     }
   } catch (error) {
+    console.log(error.message);
     res.status(401);
     throw new Error("Given Token Is Incorrect");
   }
