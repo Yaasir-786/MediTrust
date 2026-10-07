@@ -178,7 +178,7 @@ export default function LandingPage({ onNavigate }) {
                     <Button
                       variant="primary"
                       size="md"
-                      className="w-full sm:w-auto shrink-0 shadow-sm"
+                      className="w-full mr-6 sm:w-auto shrink-0 shadow-sm"
                       onClick={() => onNavigate("pharmacy")}>
                       Find Care
                     </Button>
@@ -402,7 +402,7 @@ export default function LandingPage({ onNavigate }) {
               className="flex flex-col justify-between h-full p-4">
               <div>
                 <h3 className="font-bold text-slate-900 text-base">
-                  {doctor.user.name}
+                  {doctor?.user?.name}
                 </h3>
                 <p className="text-xs font-semibold text-teal-700">
                   {doctor.specialization}

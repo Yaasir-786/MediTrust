@@ -35,8 +35,13 @@ import PrescriptionExplainerPage from "./pages/ai/PrescriptionExplainerPage";
 import FindMedicinesBySymptomPage from "./pages/ai/FindMedicinesBySymptomPage";
 import UserDashboardPage from "./pages/dashboard/UserDashboardPage";
 import AdminDashboardPage from "./pages/admin/AdminDashboardPage";
+import PrivateComponent from "./components/PrivateComponent";
+import { useSelector } from "react-redux";
+import AdminOrdersPage from "./pages/admin/AdminOrdersPage";
 
 export default function App() {
+  const { user } = useSelector((state) => state.auth);
+
   // Create a client
   const queryClient = new QueryClient();
 
@@ -51,9 +56,14 @@ export default function App() {
           <Route path="/pharmacy" element={<ProductListingPage />} />
           <Route path="/doctors" element={<DoctorListingPage />} />
           <Route path="/lab" element={<LabTestListingPage />} />
-          <Route path="/auth/dashboard" element={<UserDashboardPage />} />
+          <Route path="/auth" element={<PrivateComponent />}>
+            <Route path="dashboard" element={<UserDashboardPage />} />
+            <Route path="admin" element={<AdminDashboardPage />} />
+            <Route path="admin/orders" element={<AdminOrdersPage />} />
+            <Route path="ai-hub" element={<AiHubPage />} />
+          </Route>
         </Routes>
-        <Footer />
+        {user?.userType !== "ADMIN" && <Footer />}
         <Toaster />
       </Router>
     </QueryClientProvider>

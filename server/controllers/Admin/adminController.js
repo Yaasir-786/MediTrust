@@ -5,6 +5,7 @@ import User from "../../models/userModel.js";
 import Pathologist from "../../models/pathologistModel.js";
 import Doctor from "../../models/doctorModel.js";
 import Order from "../../models/orderModel.js";
+import { error } from "node:console";
 
 const getAllUsers = async (req, res) => {
   const users = await User.find();
@@ -15,6 +16,28 @@ const getAllUsers = async (req, res) => {
   }
 
   res.status(200).json(users);
+};
+
+const getAllOrders = async (req, res) => {
+  const orders = await Order.find().populate("user").populate("product");
+
+  if (!orders) {
+    res.status(404);
+    throw new Error("Orders Not Found..");
+  }
+
+  res.status(200).json(orders);
+};
+
+const getAllDoctors = async (req, res) => {
+  const doctors = await Doctor.find();
+
+  if (!doctors) {
+    res.status(404);
+    throw new Error("Doctors Is Not Found...");
+  }
+
+  res.status(200).json(doctors);
 };
 
 const getAllProducts = async (req, res) => {
@@ -201,6 +224,8 @@ const adminService = {
   updatePathologist,
   updateDoctor,
   updateOrder,
+  getAllOrders,
+  getAllDoctors,
 };
 
 export default adminService;

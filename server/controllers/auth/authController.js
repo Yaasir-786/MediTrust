@@ -48,9 +48,9 @@ const userLogin = async (req, res) => {
   if (user && (await bcrypt.compare(password, user.password))) {
     res.status(200).json({
       name: user.name,
-      phone: user.phone,
       email: user.email,
-      password: user.password,
+      phone: user.phone,
+      userType: user.userType,
       createdAt: user.createdAt,
       token: generateToken(user._id),
     });

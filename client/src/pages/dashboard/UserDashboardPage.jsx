@@ -75,7 +75,7 @@ export default function UserDashboardPage({ onNavigate }) {
   const { user } = useSelector((state) => state.auth);
 
   const { data, isLoading, isSuccess, isError, error } = useQuery({
-    queryKey: ["user", user.token],
+    queryKey: ["user", user?.token],
     queryFn: (token) => authService.getMyProfile(token),
   });
 
@@ -111,6 +111,10 @@ export default function UserDashboardPage({ onNavigate }) {
 
     if (isError && error) {
       toast.error(error.response.data.message);
+    }
+
+    if (!user) {
+      navigate("/login");
     }
   }, [data, isSuccess, isError, error]);
 

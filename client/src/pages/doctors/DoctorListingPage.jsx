@@ -176,7 +176,7 @@ export default function DoctorListingPage({ onNavigate }) {
                   </div>
 
                   <h3 className="font-bold text-slate-900 text-base mt-1 truncate">
-                    {doc.user.name}
+                    {doc?.user?.name}
                   </h3>
                   <p className="text-xs text-slate-500">
                     Experience: {doc.experience} Years
