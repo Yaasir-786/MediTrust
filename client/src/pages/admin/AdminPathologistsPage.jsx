@@ -33,20 +33,20 @@ import LoaderScreen from "../../components/common/Loader";
 import AdminSidebar from "../../components/admin/AdminSidebar";
 import { useLocation } from "react-router-dom";
 
-export default function AdminOrdersPage({ onNavigate }) {
+export default function AdminPathologistsPage({ onNavigate }) {
   const { user } = useSelector((state) => state.auth);
 
   let { pathname } = useLocation();
   let currentPath = pathname.split("/")[pathname.split("/").length - 1];
 
-  const { data, isLoading, isSuccess, isError, error } = useQuery({
-    queryKey: ["items"],
-    queryFn: (payload) => adminService.fetchAdminData(user?.token),
-  });
-
-  const [activeSection, setActiveSection] = useState("Order");
+  const [activeSection, setActiveSection] = useState("Pathologist");
   const [isAddProductOpen, setIsAddProductOpen] = useState(false);
   const [verificationTarget, setVerificationTarget] = useState(null);
+
+  const { data, isLoading, isSuccess, isError, error } = useQuery({
+    queryKey: ["items"],
+    queryFn: (payload) => adminService.fetchAdminData(user.token),
+  });
 
   useEffect(() => {
     if (isError && error) {
@@ -60,9 +60,7 @@ export default function AdminOrdersPage({ onNavigate }) {
 
   return (
     <div className="min-h-screen bg-slate-50 flex">
-      {/* Sidebar Navigation */}
       <AdminSidebar />
-
       {/* Main Admin Area */}
       <main className="flex-1 p-6 sm:p-10 space-y-8 overflow-x-hidden">
         {/* Top Bar */}
@@ -76,25 +74,6 @@ export default function AdminOrdersPage({ onNavigate }) {
               pharmaceutical stock control.
             </p>
           </div>
-
-          {/* ADD PRODUCT MODEL
-          <div className="flex items-center gap-2">
-            {activeSection === "products" && (
-              <Button
-                variant="primary"
-                size="sm"
-                icon={Plus}
-                onClick={() => setIsAddProductOpen(true)}>
-                Add New Product
-              </Button>
-            )}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => onNavigate("landing")}>
-              Exit to Patient Portal
-            </Button>
-          </div> */}
         </div>
 
         {/* Table Container Card */}
@@ -120,44 +99,44 @@ export default function AdminOrdersPage({ onNavigate }) {
 
           {/* DYNAMIC DATA TABLE BY SECTION */}
           <div className="overflow-x-auto">
-            {/* 4. ORDERS TABLE */}
+            {/* 3. PATHOLOGISTS TABLE */}
             <table className="w-full text-left text-xs text-slate-600">
               <thead className="bg-slate-50 text-[11px] uppercase tracking-wider text-slate-400 font-bold border-b border-slate-200">
                 <tr>
-                  <th className="py-3 px-4">Order ID</th>
-                  <th className="py-3 px-4">Patient Name</th>
-                  <th className="py-3 px-4">Product Name</th>
-                  <th className="py-3 px-4">Total</th>
-                  <th className="py-3 px-4">Date</th>
-                  <th className="py-3 px-4">Fulfillment Status</th>
+                  <th className="py-3 px-4">Laboratory Center</th>
+                  <th className="py-3 px-4">Specializations</th>
+                  <th className="py-3 px-4">Address</th>
+                  <th className="py-3 px-4">Status</th>
                   <th className="py-3 px-4 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {data?.orders?.map((row) => (
+                {data?.pathologists?.map((row) => (
                   <tr
                     key={row._id}
                     className="hover:bg-slate-50/70 transition-colors">
-                    <td className="py-3 px-4 font-mono font-bold text-slate-900">
-                      {row._id}
+                    <td className="py-3 px-4 font-semibold text-slate-900">
+                      {row.laboratoryName}
                     </td>
-                    <td className="py-3 px-4">{row.user.name}</td>
-                    <td className="py-3 px-4">{row.product.name}</td>
-                    <td className="py-3 px-4 font-bold text-slate-900">
-                      {row.product.price}
-                    </td>
-                    <td className="py-3 px-4">
-                      {new Date(row.createdAt).toLocaleDateString("en-IN")}
-                    </td>
+                    <td className="py-3 px-4">{row.specialization}</td>
+                    <td className="py-3 px-4">{row.laboratoryAddress}</td>
                     <td className="py-3 px-4">
                       <Badge variant={row.badgeVariant} size="sm" dot>
-                        {row.status.toUpperCase()}
+                        {row.isVerified ? "VERIFIED" : "NOT-VERIFIED"}
                       </Badge>
                     </td>
                     <td className="py-3 px-4 text-right">
-                      <button className="text-teal-600 font-semibold hover:underline">
-                        Update Tracking
-                      </button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() =>
+                          setVerificationTarget({
+                            ...row,
+                            type: "Pathologist",
+                          })
+                        }>
+                        Inspect Audit
+                      </Button>
                     </td>
                   </tr>
                 ))}
@@ -166,6 +145,16 @@ export default function AdminOrdersPage({ onNavigate }) {
           </div>
         </Card>
       </main>
+
+      {/* MODAL: DOCTOR / PATHOLOGIST VERIFICATION */}
+      <VerificationModal
+        isOpen={!!verificationTarget}
+        onClose={() => setVerificationTarget(null)}
+        item={verificationTarget}
+        type={verificationTarget?.type}
+        onApprove={() => setVerificationTarget(null)}
+        onReject={() => setVerificationTarget(null)}
+      />
     </div>
   );
 }

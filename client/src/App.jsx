@@ -38,6 +38,10 @@ import AdminDashboardPage from "./pages/admin/AdminDashboardPage";
 import PrivateComponent from "./components/PrivateComponent";
 import { useSelector } from "react-redux";
 import AdminOrdersPage from "./pages/admin/AdminOrdersPage";
+import AdminProductsPage from "./pages/admin/AdminProductsPage";
+import AdminDoctorsPage from "./pages/admin/AdminDoctorsPage";
+import AdminPathologistsPage from "./pages/admin/AdminPathologistsPage";
+import AdminAllUsersPage from "./pages/admin/AdminAllUsersPage";
 
 export default function App() {
   const { user } = useSelector((state) => state.auth);
@@ -57,10 +61,17 @@ export default function App() {
           <Route path="/doctors" element={<DoctorListingPage />} />
           <Route path="/lab" element={<LabTestListingPage />} />
           <Route path="/auth" element={<PrivateComponent />}>
+            <Route path="ai-hub" element={<AiHubPage />} />
             <Route path="dashboard" element={<UserDashboardPage />} />
             <Route path="admin" element={<AdminDashboardPage />} />
             <Route path="admin/orders" element={<AdminOrdersPage />} />
-            <Route path="ai-hub" element={<AiHubPage />} />
+            <Route path="admin/products" element={<AdminProductsPage />} />
+            <Route path="admin/doctors" element={<AdminDoctorsPage />} />
+            <Route
+              path="admin/pathologists"
+              element={<AdminPathologistsPage />}
+            />
+            <Route path="admin/users" element={<AdminAllUsersPage />} />
           </Route>
         </Routes>
         {user?.userType !== "ADMIN" && <Footer />}

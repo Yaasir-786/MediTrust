@@ -33,20 +33,22 @@ import LoaderScreen from "../../components/common/Loader";
 import AdminSidebar from "../../components/admin/AdminSidebar";
 import { useLocation } from "react-router-dom";
 
-export default function AdminOrdersPage({ onNavigate }) {
+export default function AdminAllUsersPage({ onNavigate }) {
   const { user } = useSelector((state) => state.auth);
 
   let { pathname } = useLocation();
   let currentPath = pathname.split("/")[pathname.split("/").length - 1];
 
-  const { data, isLoading, isSuccess, isError, error } = useQuery({
-    queryKey: ["items"],
-    queryFn: (payload) => adminService.fetchAdminData(user?.token),
-  });
-
-  const [activeSection, setActiveSection] = useState("Order");
+  const [activeSection, setActiveSection] = useState("Users");
   const [isAddProductOpen, setIsAddProductOpen] = useState(false);
   const [verificationTarget, setVerificationTarget] = useState(null);
+
+  const { data, isLoading, isSuccess, isError, error } = useQuery({
+    queryKey: ["items"],
+    queryFn: (payload) => adminService.fetchAdminData(user.token),
+  });
+
+  console.log(data?.users);
 
   useEffect(() => {
     if (isError && error) {
@@ -60,7 +62,6 @@ export default function AdminOrdersPage({ onNavigate }) {
 
   return (
     <div className="min-h-screen bg-slate-50 flex">
-      {/* Sidebar Navigation */}
       <AdminSidebar />
 
       {/* Main Admin Area */}
@@ -76,25 +77,6 @@ export default function AdminOrdersPage({ onNavigate }) {
               pharmaceutical stock control.
             </p>
           </div>
-
-          {/* ADD PRODUCT MODEL
-          <div className="flex items-center gap-2">
-            {activeSection === "products" && (
-              <Button
-                variant="primary"
-                size="sm"
-                icon={Plus}
-                onClick={() => setIsAddProductOpen(true)}>
-                Add New Product
-              </Button>
-            )}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => onNavigate("landing")}>
-              Exit to Patient Portal
-            </Button>
-          </div> */}
         </div>
 
         {/* Table Container Card */}
@@ -120,43 +102,43 @@ export default function AdminOrdersPage({ onNavigate }) {
 
           {/* DYNAMIC DATA TABLE BY SECTION */}
           <div className="overflow-x-auto">
-            {/* 4. ORDERS TABLE */}
+            {/* 6. USERS TABLE */}
             <table className="w-full text-left text-xs text-slate-600">
               <thead className="bg-slate-50 text-[11px] uppercase tracking-wider text-slate-400 font-bold border-b border-slate-200">
                 <tr>
-                  <th className="py-3 px-4">Order ID</th>
-                  <th className="py-3 px-4">Patient Name</th>
-                  <th className="py-3 px-4">Product Name</th>
-                  <th className="py-3 px-4">Total</th>
-                  <th className="py-3 px-4">Date</th>
-                  <th className="py-3 px-4">Fulfillment Status</th>
+                  <th className="py-3 px-4">Full Name</th>
+                  <th className="py-3 px-4">Email</th>
+                  <th className="py-3 px-4">Portal Role</th>
+                  <th className="py-3 px-4">Joined</th>
+                  <th className="py-3 px-4">Status</th>
                   <th className="py-3 px-4 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {data?.orders?.map((row) => (
+                {data?.users?.map((row) => (
                   <tr
                     key={row._id}
                     className="hover:bg-slate-50/70 transition-colors">
-                    <td className="py-3 px-4 font-mono font-bold text-slate-900">
-                      {row._id}
+                    <td className="py-3 px-4 font-semibold text-slate-900">
+                      {row.name}
                     </td>
-                    <td className="py-3 px-4">{row.user.name}</td>
-                    <td className="py-3 px-4">{row.product.name}</td>
-                    <td className="py-3 px-4 font-bold text-slate-900">
-                      {row.product.price}
+                    <td className="py-3 px-4">{row.email}</td>
+                    <td className="py-3 px-4">
+                      <span className="font-semibold text-slate-700">
+                        {row.userType}
+                      </span>
                     </td>
                     <td className="py-3 px-4">
                       {new Date(row.createdAt).toLocaleDateString("en-IN")}
                     </td>
                     <td className="py-3 px-4">
                       <Badge variant={row.badgeVariant} size="sm" dot>
-                        {row.status.toUpperCase()}
+                        {row.isActive ? "ACTIVE" : "INACTIVE"}
                       </Badge>
                     </td>
                     <td className="py-3 px-4 text-right">
-                      <button className="text-teal-600 font-semibold hover:underline">
-                        Update Tracking
+                      <button className="text-slate-400 hover:text-slate-600 p-1">
+                        <MoreVertical className="w-4 h-4 ml-auto" />
                       </button>
                     </td>
                   </tr>

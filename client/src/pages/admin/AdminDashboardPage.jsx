@@ -30,291 +30,18 @@ import adminService from "../../services/adminService";
 import { useSelector } from "react-redux";
 import toast from "react-hot-toast";
 import LoaderScreen from "../../components/common/Loader";
-
-// ==========================================
-// MOCK DATA (Hardcoded for teaching purposes)
-// Later replace with: api.admin.getDashboardMetrics()
-// ==========================================
-
-const MOCK_USERS_DATA = [
-  {
-    id: "usr-1",
-    name: "Sarah Connor",
-    email: "sarah.connor@healthmail.com",
-    role: "Patient",
-    joined: "Jan 12, 2026",
-    orders: 4,
-    status: "Active",
-    badgeVariant: "success",
-  },
-  {
-    id: "usr-2",
-    name: "Dr. Sarah Jenkins",
-    email: "dr.jenkins@mountsinai.org",
-    role: "Doctor",
-    joined: "Feb 03, 2026",
-    orders: 0,
-    status: "Verified",
-    badgeVariant: "success",
-  },
-  {
-    id: "usr-3",
-    name: "Marcus Sterling",
-    email: "marcus.s@metrolabs.com",
-    role: "Pathologist",
-    joined: "Mar 15, 2026",
-    orders: 0,
-    status: "Verified",
-    badgeVariant: "success",
-  },
-  {
-    id: "usr-4",
-    name: "David Henderson",
-    email: "david.h@gmail.com",
-    role: "Patient",
-    joined: "Apr 20, 2026",
-    orders: 12,
-    status: "Active",
-    badgeVariant: "success",
-  },
-  {
-    id: "usr-5",
-    name: "Dr. James Wilson",
-    email: "dr.wilson@princeton.edu",
-    role: "Doctor Applicant",
-    joined: "Sep 21, 2026",
-    orders: 0,
-    status: "Pending Review",
-    badgeVariant: "warning",
-  },
-];
-
-const MOCK_PRODUCTS_DATA = [
-  {
-    id: "prod-1",
-    name: "Amoxicillin Trihydrate 500mg",
-    category: "Prescription Drugs",
-    price: "$18.50",
-    stock: 142,
-    rx: "Required",
-    status: "In Stock",
-    badgeVariant: "success",
-  },
-  {
-    id: "prod-2",
-    name: "Metformin HCl 500mg ER",
-    category: "Diabetes Management",
-    price: "$14.20",
-    stock: 89,
-    rx: "Required",
-    status: "In Stock",
-    badgeVariant: "success",
-  },
-  {
-    id: "prod-3",
-    name: "Cetirizine 10mg Allergy Relief",
-    category: "Pain Relief & OTC",
-    price: "$11.25",
-    stock: 240,
-    rx: "No",
-    status: "In Stock",
-    badgeVariant: "success",
-  },
-  {
-    id: "prod-4",
-    name: "Lipitor (Atorvastatin) 20mg",
-    category: "Cardiac Care",
-    price: "$32.00",
-    stock: 54,
-    rx: "Required",
-    status: "Low Stock",
-    badgeVariant: "warning",
-  },
-  {
-    id: "prod-5",
-    name: "Vitamin D3 5000 IU",
-    category: "Vitamins & Nutrition",
-    price: "$16.99",
-    stock: 320,
-    rx: "No",
-    status: "In Stock",
-    badgeVariant: "success",
-  },
-];
-
-const MOCK_DOCTORS_DATA = [
-  {
-    id: "doc-1",
-    name: "Dr. Sarah Jenkins, MD",
-    specialty: "Cardiology",
-    hospital: "Mount Sinai Heart Center",
-    license: "NY-MED-849102-X",
-    status: "Verified",
-    badgeVariant: "success",
-  },
-  {
-    id: "doc-2",
-    name: "Dr. Marcus Vance, DO",
-    specialty: "Dermatology",
-    hospital: "Boston Skin Pavilion",
-    license: "MA-MED-771920-D",
-    status: "Verified",
-    badgeVariant: "success",
-  },
-  {
-    id: "doc-3",
-    name: "Dr. Alexander Wright, MD",
-    specialty: "Cardiology",
-    hospital: "Mount Sinai Health System",
-    license: "NY-MED-992014-A",
-    status: "Pending Verification",
-    badgeVariant: "warning",
-  },
-  {
-    id: "doc-4",
-    name: "Dr. Elena Rostova, MD",
-    specialty: "Pediatrics",
-    hospital: "Children's Health Pavilion",
-    license: "IL-MED-661209-E",
-    status: "Verified",
-    badgeVariant: "success",
-  },
-];
-
-const MOCK_PATHOLOGISTS_DATA = [
-  {
-    id: "path-1",
-    name: "Metro Diagnostic Pathology Labs",
-    director: "Dr. Kenneth Harris",
-    city: "Boston, MA",
-    license: "NABL-ISO-15189",
-    capacity: "2,500/day",
-    status: "Verified",
-    badgeVariant: "success",
-  },
-  {
-    id: "path-2",
-    name: "Apex Clinical Genomics Center",
-    director: "Dr. Rachel Green",
-    city: "New York, NY",
-    license: "CLIA-NY-88910",
-    capacity: "1,800/day",
-    status: "Under Review",
-    badgeVariant: "warning",
-  },
-  {
-    id: "path-3",
-    name: "BioReference Diagnostic Hub",
-    director: "Dr. Simon Chen",
-    city: "Chicago, IL",
-    license: "CAP-IL-55410",
-    capacity: "3,200/day",
-    status: "Verified",
-    badgeVariant: "success",
-  },
-];
-
-const MOCK_ORDERS_DATA = [
-  {
-    id: "ORD-98421",
-    user: "Sarah Connor",
-    items: "2 items",
-    total: "$37.00",
-    date: "Sep 22, 2026",
-    status: "Shipped",
-    badgeVariant: "info",
-  },
-  {
-    id: "ORD-98305",
-    user: "David Henderson",
-    items: "2 items",
-    total: "$51.24",
-    date: "Sep 15, 2026",
-    status: "Delivered",
-    badgeVariant: "success",
-  },
-  {
-    id: "ORD-97910",
-    user: "Maria Vasquez",
-    items: "1 item",
-    total: "$11.25",
-    date: "Aug 28, 2026",
-    status: "Delivered",
-    badgeVariant: "success",
-  },
-  {
-    id: "ORD-96540",
-    user: "Julian Ramos",
-    items: "1 item",
-    total: "$28.50",
-    date: "Jul 14, 2026",
-    status: "Cancelled",
-    badgeVariant: "danger",
-  },
-];
-
-const MOCK_APPOINTMENTS_DATA = [
-  {
-    id: "APT-1082",
-    patient: "Sarah Connor",
-    doctor: "Dr. Sarah Jenkins",
-    date: "Sep 23, 3:30 PM",
-    mode: "Video Call",
-    fee: "$95",
-    status: "Upcoming",
-    badgeVariant: "info",
-  },
-  {
-    id: "APT-1049",
-    patient: "David Henderson",
-    doctor: "Dr. Marcus Vance",
-    date: "Sep 10, 11:00 AM",
-    mode: "In-Clinic",
-    fee: "$85",
-    status: "Completed",
-    badgeVariant: "success",
-  },
-  {
-    id: "APT-0994",
-    patient: "Elena Cruz",
-    doctor: "Dr. Elena Rostova",
-    date: "Aug 18, 4:00 PM",
-    mode: "Video Call",
-    fee: "$90",
-    status: "Completed",
-    badgeVariant: "success",
-  },
-];
+import AdminSidebar from "../../components/admin/AdminSidebar";
+import { useLocation } from "react-router-dom";
 
 export default function AdminDashboardPage({ onNavigate }) {
-  const [activeSection, setActiveSection] = useState("products");
-  const [verificationTarget, setVerificationTarget] = useState(null);
-
-  const SIDEBAR_ITEMS = [
-    {
-      id: "products",
-      label: "Products & Inventory",
-      icon: Package,
-      badge: "5",
-    },
-    {
-      id: "doctors",
-      label: "Doctors & Licensure",
-      icon: Stethoscope,
-      badge: "1 Pending",
-    },
-    {
-      id: "pathologists",
-      label: "Pathology Labs",
-      icon: FlaskConical,
-      badge: "1 Review",
-    },
-    { id: "orders", label: "Medicine Orders", icon: ShoppingBag, badge: "4" },
-    { id: "appointments", label: "Appointments", icon: Calendar, badge: "3" },
-    { id: "users", label: "Registered Users", icon: Users, badge: "12k" },
-  ];
-
   const { user } = useSelector((state) => state.auth);
+
+  let { pathname } = useLocation();
+  let currentPath = pathname.split("/")[pathname.split("/").length - 1];
+
+  const [activeSection, setActiveSection] = useState("products");
+  const [isAddProductOpen, setIsAddProductOpen] = useState(false);
+  const [verificationTarget, setVerificationTarget] = useState(null);
 
   const { data, isLoading, isSuccess, isError, error } = useQuery({
     queryKey: ["items"],
@@ -370,8 +97,6 @@ export default function AdminDashboardPage({ onNavigate }) {
     },
   ];
 
-  const [isAddProductOpen, setIsAddProductOpen] = useState(false);
-
   useEffect(() => {
     if (isError && error) {
       toast.error(error.response.data.message);
@@ -384,35 +109,7 @@ export default function AdminDashboardPage({ onNavigate }) {
 
   return (
     <div className="min-h-screen bg-slate-50 flex">
-      {/* Sidebar Navigation */}
-      <Sidebar
-        items={SIDEBAR_ITEMS}
-        activeItem={activeSection}
-        onSelect={setActiveSection}
-        header={
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-teal-600 text-white flex items-center justify-center font-bold text-sm shadow-sm">
-              M
-            </div>
-            <div>
-              <h2 className="text-sm font-bold text-slate-900 leading-tight">
-                Admin Portal
-              </h2>
-              <p className="text-[10px] text-teal-700 font-semibold uppercase tracking-wider">
-                MediTrust Hospital Operations
-              </p>
-            </div>
-          </div>
-        }
-        footer={
-          <div className="text-xs text-slate-500 space-y-1">
-            <p className="font-semibold text-slate-700">
-              Audit Compliance: Active
-            </p>
-            <p className="text-[11px] text-slate-400">HIPAA Admin Role #9941</p>
-          </div>
-        }
-      />
+      <AdminSidebar />
 
       {/* Main Admin Area */}
       <main className="flex-1 p-6 sm:p-10 space-y-8 overflow-x-hidden">
@@ -420,7 +117,7 @@ export default function AdminDashboardPage({ onNavigate }) {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl font-extrabold text-slate-900 capitalize">
-              {activeSection} Overview
+              {currentPath.toUpperCase()} ADMIN OVERVIEW
             </h1>
             <p className="text-xs text-slate-500 mt-0.5">
               Live hospital operations, verification workflows, and
@@ -503,36 +200,30 @@ export default function AdminDashboardPage({ onNavigate }) {
                 <thead className="bg-slate-50 text-[11px] uppercase tracking-wider text-slate-400 font-bold border-b border-slate-200">
                   <tr>
                     <th className="py-3 px-4">Product Name</th>
-                    <th className="py-3 px-4">Category</th>
+                    <th className="py-3 px-4">Description</th>
                     <th className="py-3 px-4">Price</th>
-                    <th className="py-3 px-4">Stock</th>
-                    <th className="py-3 px-4">Rx Gate</th>
-                    <th className="py-3 px-4">Status</th>
+                    <th className="py-3 px-8">Stock</th>
+                    <th className="py-3 px-10">Status</th>
                     <th className="py-3 px-4 text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {MOCK_PRODUCTS_DATA.map((row) => (
+                  {data?.products?.map((row) => (
                     <tr
-                      key={row.id}
+                      key={row._id}
                       className="hover:bg-slate-50/70 transition-colors">
                       <td className="py-3 px-4 font-semibold text-slate-900">
                         {row.name}
                       </td>
-                      <td className="py-3 px-4">{row.category}</td>
+                      <td className="py-3 px-4">{row.description}</td>
                       <td className="py-3 px-4 font-bold text-slate-900">
                         {row.price}
                       </td>
-                      <td className="py-3 px-4">{row.stock} units</td>
-                      <td className="py-3 px-4">
-                        <span
-                          className={`px-2 py-0.5 rounded text-[10px] font-bold ${row.rx === "Required" ? "bg-amber-100 text-amber-800" : "bg-slate-100 text-slate-600"}`}>
-                          {row.rx}
-                        </span>
-                      </td>
+                      <td className="py-3 px-6">{row.stock} units</td>
+
                       <td className="py-3 px-4">
                         <Badge variant={row.badgeVariant} size="sm" dot>
-                          {row.status}
+                          {row.stock > 0 ? "IN-STOCK" : "OUT-OF-STOCK"}
                         </Badge>
                       </td>
                       <td className="py-3 px-4 text-right">
