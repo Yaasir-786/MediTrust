@@ -25,7 +25,7 @@ export default function Sidebar({
           return (
             <Link
               key={item.id}
-              to={`/auth/admin/${item.id}`}
+              to={item.to ?? `/auth/admin/${item.id}`}
               onClick={() => onSelect && onSelect(item.id)}
               type="button"
               className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${

@@ -62,6 +62,11 @@ export default function App() {
           <Route path="/lab" element={<LabTestListingPage />} />
           <Route path="/auth" element={<PrivateComponent />}>
             <Route path="ai-hub" element={<AiHubPage />} />
+            <Route path="ai-hub/chat" element={<AiChatPage />} />
+            <Route
+              path="ai-hub/prescription"
+              element={<PrescriptionExplainerPage />}
+            />
             <Route path="dashboard" element={<UserDashboardPage />} />
             <Route path="admin" element={<AdminDashboardPage />} />
             <Route path="admin/orders" element={<AdminOrdersPage />} />

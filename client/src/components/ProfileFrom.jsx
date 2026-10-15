@@ -14,11 +14,20 @@ const ProfileFrom = ({ user }) => {
   });
 
   const [formData, setFormData] = useState({
-    name: user.name,
-    email: user.email,
-    phone: user.phone,
-    address: user.address,
+    name: user?.name ?? "",
+    email: user?.email ?? "",
+    phone: user?.phone ?? "",
+    address: user?.address ?? "",
   });
+
+  useEffect(() => {
+    setFormData({
+      name: user?.name ?? "",
+      email: user?.email ?? "",
+      phone: user?.phone ?? "",
+      address: user?.address ?? "",
+    });
+  }, [user?.name, user?.email, user?.phone, user?.address]);
 
   const { name, email, phone, address } = formData;
 
@@ -31,6 +40,10 @@ const ProfileFrom = ({ user }) => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    if (!user?.token) {
+      toast.error("Session expired. Please login again.");
+      return;
+    }
     mutate({ token: user.token, ...formData });
   };
 
@@ -40,7 +53,7 @@ const ProfileFrom = ({ user }) => {
     }
 
     if (isError && error) {
-      toast.error(error.response.data.message);
+      toast.error(error.response?.data?.message || error.message);
     }
   }, [isSuccess, data, isError, error]);
 
@@ -65,7 +78,7 @@ const ProfileFrom = ({ user }) => {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Input
             label="Full Name"
-            defaultValue={name}
+            value={name}
             name="name"
             onChange={handleChange}
             icon={User}
@@ -83,7 +96,7 @@ const ProfileFrom = ({ user }) => {
           <Input
             label="Email Address"
             type="email"
-            defaultValue={email}
+            value={email}
             name="email"
             onChange={handleChange}
             icon={Mail}
@@ -92,7 +105,7 @@ const ProfileFrom = ({ user }) => {
           <Input
             label="Phone Number"
             type="tel"
-            defaultValue={phone}
+            value={phone}
             name="phone"
             onChange={handleChange}
             icon={Phone}
@@ -102,7 +115,7 @@ const ProfileFrom = ({ user }) => {
 
         <Input
           label="Default Delivery Address"
-          defaultValue={address}
+          value={address}
           name="address"
           onChange={handleChange}
           required

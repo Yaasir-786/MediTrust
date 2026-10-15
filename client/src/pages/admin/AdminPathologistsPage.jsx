@@ -44,13 +44,14 @@ export default function AdminPathologistsPage({ onNavigate }) {
   const [verificationTarget, setVerificationTarget] = useState(null);
 
   const { data, isLoading, isSuccess, isError, error } = useQuery({
-    queryKey: ["items"],
-    queryFn: (payload) => adminService.fetchAdminData(user.token),
+    queryKey: ["admin-pathologists"],
+    queryFn: () => adminService.fetchAdminData(user?.token),
+    enabled: !!user?.token,
   });
 
   useEffect(() => {
     if (isError && error) {
-      toast.error(error.response.data.message);
+      toast.error(error.response?.data?.message || error.message);
     }
   }, [isError, error, data, isSuccess]);
 
@@ -121,7 +122,10 @@ export default function AdminPathologistsPage({ onNavigate }) {
                     <td className="py-3 px-4">{row.specialization}</td>
                     <td className="py-3 px-4">{row.laboratoryAddress}</td>
                     <td className="py-3 px-4">
-                      <Badge variant={row.badgeVariant} size="sm" dot>
+                      <Badge
+                        variant={row.isVerified ? "success" : "danger"}
+                        size="sm"
+                        dot>
                         {row.isVerified ? "VERIFIED" : "NOT-VERIFIED"}
                       </Badge>
                     </td>

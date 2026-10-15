@@ -40,8 +40,9 @@ export default function AdminOrdersPage({ onNavigate }) {
   let currentPath = pathname.split("/")[pathname.split("/").length - 1];
 
   const { data, isLoading, isSuccess, isError, error } = useQuery({
-    queryKey: ["items"],
-    queryFn: (payload) => adminService.fetchAdminData(user?.token),
+    queryKey: ["admin-orders"],
+    queryFn: () => adminService.fetchAdminData(user?.token),
+    enabled: !!user?.token,
   });
 
   const [activeSection, setActiveSection] = useState("Order");
@@ -50,7 +51,7 @@ export default function AdminOrdersPage({ onNavigate }) {
 
   useEffect(() => {
     if (isError && error) {
-      toast.error(error.response.data.message);
+      toast.error(error.response?.data?.message || error.message);
     }
   }, [isError, error, data, isSuccess]);
 
@@ -139,19 +140,31 @@ export default function AdminOrdersPage({ onNavigate }) {
                     key={row._id}
                     className="hover:bg-slate-50/70 transition-colors">
                     <td className="py-3 px-4 font-mono font-bold text-slate-900">
-                      {row._id}
+                      {row._id?.slice(-6) ?? row._id}
                     </td>
-                    <td className="py-3 px-4">{row.user.name}</td>
-                    <td className="py-3 px-4">{row.product.name}</td>
+                    <td className="py-3 px-4">{row.user?.name ?? "—"}</td>
+                    <td className="py-3 px-4">{row.product?.name ?? "—"}</td>
                     <td className="py-3 px-4 font-bold text-slate-900">
-                      {row.product.price}
+                      {row.product?.price ?? "—"}
                     </td>
                     <td className="py-3 px-4">
-                      {new Date(row.createdAt).toLocaleDateString("en-IN")}
+                      {row.createdAt
+                        ? new Date(row.createdAt).toLocaleDateString("en-IN")
+                        : "—"}
                     </td>
                     <td className="py-3 px-4">
-                      <Badge variant={row.badgeVariant} size="sm" dot>
-                        {row.status.toUpperCase()}
+                      <Badge
+                        variant={
+                          row.status === "delivered" ||
+                          row.status === "confirmed"
+                            ? "success"
+                            : row.status === "cancelled"
+                              ? "danger"
+                              : "warning"
+                        }
+                        size="sm"
+                        dot>
+                        {(row.status ?? "unknown").toUpperCase()}
                       </Badge>
                     </td>
                     <td className="py-3 px-4 text-right">

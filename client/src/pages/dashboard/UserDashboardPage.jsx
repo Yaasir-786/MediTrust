@@ -30,7 +30,7 @@ import authService from "../../services/authService";
 import LoaderScreen from "../../components/common/Loader";
 import { getProfile } from "../../features/auth/authSlice";
 import toast from "react-hot-toast";
-import ProfileFrom from "../../components/profileFrom";
+import ProfileFrom from "../../components/ProfileFrom";
 
 // ==========================================
 // MOCK DATA (Hardcoded for teaching purposes)
@@ -76,7 +76,9 @@ export default function UserDashboardPage({ onNavigate }) {
 
   const { data, isLoading, isSuccess, isError, error } = useQuery({
     queryKey: ["user", user?.token],
-    queryFn: (token) => authService.getMyProfile(token),
+    queryFn: () => authService.getMyProfile(user?.token),
+    enabled: !!user?.token,
+    retry: false,
   });
 
   const dispatch = useDispatch();
@@ -110,13 +112,15 @@ export default function UserDashboardPage({ onNavigate }) {
     }
 
     if (isError && error) {
-      toast.error(error.response.data.message);
+      toast.error(error.response?.data?.message || error.message);
     }
+  }, [data, isSuccess, isError, error, dispatch]);
 
-    if (!user) {
+  useEffect(() => {
+    if (!user?.token) {
       navigate("/login");
     }
-  }, [data, isSuccess, isError, error]);
+  }, [user, navigate]);
 
   if (isLoading) {
     return <LoaderScreen />;
@@ -141,7 +145,7 @@ export default function UserDashboardPage({ onNavigate }) {
           <div className="relative group shrink-0">
             <img
               src="https://upload.wikimedia.org/wikipedia/commons/7/7c/Profile_avatar_placeholder_large.png?utm_source=commons.wikimedia.org&utm_campaign=index&utm_content=original"
-              alt={user.name}
+              alt={user?.name ?? "User"}
               className="w-24 h-24 rounded-2xl object-cover border-4 border-white/20 shadow-xl"
             />
             <button
@@ -155,20 +159,20 @@ export default function UserDashboardPage({ onNavigate }) {
           <div className="text-center sm:text-left space-y-1.5 flex-1">
             <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
               <h1 className="text-2xl font-extrabold tracking-tight">
-                {user.name}
+                {user?.name ?? "—"}
               </h1>
               <Badge variant="success" size="sm" dot>
-                {user.userType}
+                {user?.userType ?? "USER"}
               </Badge>
               <span className="text-xs text-teal-200/80 font-mono bg-teal-950/60 px-2 py-0.5 rounded border border-teal-700/50">
-                {user._id}
+                {user?._id ?? ""}
               </span>
             </div>
 
             <p className="text-xs text-teal-100/90 flex flex-wrap items-center justify-center sm:justify-start gap-4 pt-1">
-              <span>{user.email}</span>
+              <span>{user?.email ?? ""}</span>
               <span>•</span>
-              <span>{user.phone}</span>
+              <span>{user?.phone ?? ""}</span>
             </p>
           </div>
         </div>
@@ -197,7 +201,7 @@ export default function UserDashboardPage({ onNavigate }) {
       )}
 
       {/* Tab 1: Profile Info Form */}
-      {activeTab === "profile" && user.address && <ProfileFrom user={user} />}
+      {activeTab === "profile" && user && <ProfileFrom user={user} />}
 
       {/* Tab 2: Orders Redirect */}
       {activeTab === "orders" && (

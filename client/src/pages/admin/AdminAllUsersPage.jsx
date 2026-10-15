@@ -44,15 +44,14 @@ export default function AdminAllUsersPage({ onNavigate }) {
   const [verificationTarget, setVerificationTarget] = useState(null);
 
   const { data, isLoading, isSuccess, isError, error } = useQuery({
-    queryKey: ["items"],
-    queryFn: (payload) => adminService.fetchAdminData(user.token),
+    queryKey: ["admin-users"],
+    queryFn: () => adminService.fetchAdminData(user?.token),
+    enabled: !!user?.token,
   });
-
-  console.log(data?.users);
 
   useEffect(() => {
     if (isError && error) {
-      toast.error(error.response.data.message);
+      toast.error(error.response?.data?.message || error.message);
     }
   }, [isError, error, data, isSuccess]);
 
@@ -129,10 +128,15 @@ export default function AdminAllUsersPage({ onNavigate }) {
                       </span>
                     </td>
                     <td className="py-3 px-4">
-                      {new Date(row.createdAt).toLocaleDateString("en-IN")}
+                      {row.createdAt
+                        ? new Date(row.createdAt).toLocaleDateString("en-IN")
+                        : "—"}
                     </td>
                     <td className="py-3 px-4">
-                      <Badge variant={row.badgeVariant} size="sm" dot>
+                      <Badge
+                        variant={row.isActive ? "success" : "danger"}
+                        size="sm"
+                        dot>
                         {row.isActive ? "ACTIVE" : "INACTIVE"}
                       </Badge>
                     </td>

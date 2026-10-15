@@ -12,7 +12,13 @@ const loginUser = async (formData) => {
 };
 
 const getMyProfile = async (payload) => {
-  let token = payload.queryKey[1];
+  const token =
+    typeof payload === "string" ? payload : payload?.queryKey?.[1];
+
+  if (!token) {
+    throw new Error("No auth token found. Please login again.");
+  }
+
   let options = {
     headers: { authorization: `Bearer ${token}` },
   };

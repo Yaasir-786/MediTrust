@@ -44,13 +44,14 @@ export default function AdminProductsPage({ onNavigate }) {
   const [verificationTarget, setVerificationTarget] = useState(null);
 
   const { data, isLoading, isSuccess, isError, error } = useQuery({
-    queryKey: ["items"],
-    queryFn: (payload) => adminService.fetchAdminData(user.token),
+    queryKey: ["admin-products"],
+    queryFn: () => adminService.fetchAdminData(user?.token),
+    enabled: !!user?.token,
   });
 
   useEffect(() => {
     if (isError && error) {
-      toast.error(error.response.data.message);
+      toast.error(error.response?.data?.message || error.message);
     }
   }, [isError, error, data, isSuccess]);
 
@@ -77,7 +78,7 @@ export default function AdminProductsPage({ onNavigate }) {
           </div>
 
           <div className="flex items-center gap-2">
-            {activeSection === "products" && (
+            {activeSection.toLowerCase() === "products" && (
               <Button
                 variant="primary"
                 size="sm"
@@ -143,8 +144,8 @@ export default function AdminProductsPage({ onNavigate }) {
                     <td className="py-3 px-4">{row.stock} units</td>
 
                     <td className="py-3 px-4">
-                      <Badge variant={row.badgeVariant} size="sm" dot>
-                        {row.isActive ? "IN-STOCK" : "OUT-OF-STOCK"}
+                      <Badge variant={row.stock > 0 ? "success" : "danger"} size="sm" dot>
+                        {row.stock > 0 ? "IN-STOCK" : "OUT-OF-STOCK"}
                       </Badge>
                     </td>
                     <td className="py-3 px-4 text-right">

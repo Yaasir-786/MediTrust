@@ -10,9 +10,8 @@ import { error } from "node:console";
 const getAllUsers = async (req, res) => {
   const users = await User.find();
 
-  if (!users) {
-    res.status(404);
-    throw new Error("Users Not Found... ");
+  if (!users || users.length === 0) {
+    return res.status(200).json([]);
   }
 
   res.status(200).json(users);
@@ -21,20 +20,18 @@ const getAllUsers = async (req, res) => {
 const getAllOrders = async (req, res) => {
   const orders = await Order.find().populate("user").populate("product");
 
-  if (!orders) {
-    res.status(404);
-    throw new Error("Orders Not Found..");
+  if (!orders || orders.length === 0) {
+    return res.status(200).json([]);
   }
 
   res.status(200).json(orders);
 };
 
 const getAllDoctors = async (req, res) => {
-  const doctors = await Doctor.find();
+  const doctors = await Doctor.find().populate("user");
 
-  if (!doctors) {
-    res.status(404);
-    throw new Error("Doctors Is Not Found...");
+  if (!doctors || doctors.length === 0) {
+    return res.status(200).json([]);
   }
 
   res.status(200).json(doctors);
@@ -43,9 +40,8 @@ const getAllDoctors = async (req, res) => {
 const getAllProducts = async (req, res) => {
   const products = await Product.find();
 
-  if (!products) {
-    res.status(404);
-    throw new Error("Products Not Found..");
+  if (!products || products.length === 0) {
+    return res.status(200).json([]);
   }
 
   res.status(200).json(products);
@@ -116,9 +112,8 @@ const updateProduct = async (req, res) => {
 const getAllPathologists = async (req, res) => {
   const pathologists = await Pathologist.find().populate("user");
 
-  if (!pathologists) {
-    res.status(404);
-    throw new Error("Pathologists Not Found...");
+  if (!pathologists || pathologists.length === 0) {
+    return res.status(200).json([]);
   }
 
   res.status(200).json(pathologists);

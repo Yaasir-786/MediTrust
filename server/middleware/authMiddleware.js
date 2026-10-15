@@ -55,8 +55,8 @@ const forAdmin = async (req, res, next) => {
       throw new Error("No Token Found...");
     }
   } catch (error) {
-    res.status(404);
-    throw new Error("Given Token Is Incorrect");
+    if (!res.statusCode || res.statusCode === 200) res.status(401);
+    throw new Error(error.message || "Given Token Is Incorrect");
   }
 };
 

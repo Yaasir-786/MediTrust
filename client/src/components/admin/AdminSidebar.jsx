@@ -28,10 +28,11 @@ const AdminSidebar = () => {
 
   const SIDEBAR_ITEMS = [
     {
-      id: "/",
+      id: "admin",
       label: "Admin Overview",
       icon: Package,
       badge: "5",
+      to: "/auth/admin",
     },
     {
       id: "products",
@@ -57,7 +58,7 @@ const AdminSidebar = () => {
   return (
     <Sidebar
       items={SIDEBAR_ITEMS}
-      activeItem={currentPath}
+      activeItem={currentPath === "admin" ? "admin" : currentPath}
       header={
         <div className="flex items-center gap-2.5">
           <div className="w-8 h-8 rounded-lg bg-teal-600 text-white flex items-center justify-center font-bold text-sm shadow-sm">
