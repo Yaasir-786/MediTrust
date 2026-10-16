@@ -27,49 +27,62 @@ import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import authService from "../../services/authService";
+import dashboardService from "../../services/dashboardService";
 import LoaderScreen from "../../components/common/Loader";
-import { getProfile } from "../../features/auth/authSlice";
+import { getProfile, logoutUser } from "../../features/auth/authSlice";
 import toast from "react-hot-toast";
 import ProfileFrom from "../../components/ProfileFrom";
 
-// ==========================================
-// MOCK DATA (Hardcoded for teaching purposes)
-// Later replace with: api.user.getProfile()
-// ==========================================
+const formatDate = (value) => {
+  if (!value) return "—";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return "—";
+  return d.toLocaleDateString("en-IN", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+};
 
-// const MOCK_PROFILE = {
-//   patientId: "PT-992014",
-//   fullName: "Sarah Connor",
-//   email: "sarah.connor@healthmail.com",
-//   phone: "+1 (555) 234-5678",
-//   dateOfBirth: "1988-06-14",
-//   gender: "Female",
-//   bloodGroup: "O Positive (O+)",
-//   emergencyContact: "John Connor (Son) • +1 (555) 987-6543",
-//   address: "742 Evergreen Terrace, Springfield, OR 97477",
-//   allergies: ["Penicillin (Mild rash)", "Sulfa Drugs", "Latex"],
-//   avatar:
-//     "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&q=80&w=300",
-// };
+const formatMoney = (value) => {
+  const n = Number(value ?? 0);
+  return `$${(Number.isFinite(n) ? n : 0).toFixed(2)}`;
+};
 
-const MOCK_PRESCRIPTIONS = [
-  {
-    id: "RX-2026-88",
-    doctor: "Dr. Sarah Jenkins, MD (Cardiology)",
-    date: "Sep 22, 2026",
-    diagnosis: "Acute Bronchitis & Hypertension Review",
-    medicines: "Amoxicillin 500mg, Lipitor 20mg",
-    fileName: "Prescription_Sep22_2026.pdf",
-  },
-  {
-    id: "RX-2026-45",
-    doctor: "Dr. Marcus Vance, DO (Dermatology)",
-    date: "Aug 14, 2026",
-    diagnosis: "Contact Dermatitis & Eczema Flare",
-    medicines: "Cerave Barrier Cream, Cetirizine 10mg",
-    fileName: "Prescription_Aug14_2026.pdf",
-  },
-];
+const orderStatusMeta = (status) => {
+  switch (String(status ?? "pending").toLowerCase()) {
+    case "confirmed":
+      return { label: "Confirmed", variant: "info" };
+    case "delivered":
+      return { label: "Delivered", variant: "success" };
+    case "cancelled":
+      return { label: "Cancelled", variant: "danger" };
+    default:
+      return { label: "Pending", variant: "warning" };
+  }
+};
+
+const appointmentStatusMeta = (status) => {
+  switch (String(status ?? "pending").toLowerCase()) {
+    case "confirmed":
+      return { label: "Confirmed", variant: "success" };
+    case "cancelled":
+      return { label: "Cancelled", variant: "danger" };
+    default:
+      return { label: "Pending", variant: "warning" };
+  }
+};
+
+const labStatusMeta = (status) => {
+  switch (String(status ?? "pending").toLowerCase()) {
+    case "delivered":
+      return { label: "Delivered", variant: "success" };
+    case "cancelled":
+      return { label: "Cancelled", variant: "danger" };
+    default:
+      return { label: "Pending", variant: "warning" };
+  }
+};
 
 export default function UserDashboardPage({ onNavigate }) {
   const { user } = useSelector((state) => state.auth);
@@ -81,23 +94,135 @@ export default function UserDashboardPage({ onNavigate }) {
     retry: false,
   });
 
+  const {
+    data: summary,
+    isLoading: isSummaryLoading,
+    isError: isSummaryError,
+    error: summaryError,
+    refetch: refetchSummary,
+    isRefetching: isSummaryRefetching,
+  } = useQuery({
+    queryKey: ["dashboard-summary", user?.token],
+    queryFn: () => dashboardService.getSummary(user?.token),
+    enabled: !!user?.token,
+    retry: false,
+    staleTime: 0,
+    refetchOnWindowFocus: true,
+  });
+
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
   const [activeTab, setActiveTab] = useState("profile");
   const [saveSuccess, setSaveSuccess] = useState(false);
 
+  const go = (route, legacyId) => {
+    if (typeof onNavigate === "function" && legacyId) {
+      try {
+        onNavigate(legacyId);
+      } catch {
+        // ignore legacy demo navigator errors
+      }
+    }
+    navigate(route);
+  };
+
+  const {
+    data: orders = [],
+    isLoading: isOrdersLoading,
+    isError: isOrdersError,
+    error: ordersError,
+    refetch: refetchOrders,
+  } = useQuery({
+    queryKey: ["dashboard-orders", user?.token],
+    queryFn: () => dashboardService.getMyOrders(user?.token),
+    enabled: !!user?.token && activeTab === "orders",
+    retry: false,
+  });
+
+  const {
+    data: appointments = [],
+    isLoading: isAppointmentsLoading,
+    isError: isAppointmentsError,
+    error: appointmentsError,
+    refetch: refetchAppointments,
+  } = useQuery({
+    queryKey: ["dashboard-appointments", user?.token],
+    queryFn: () => dashboardService.getMyDoctorAppointments(user?.token),
+    enabled: !!user?.token && activeTab === "appointments",
+    retry: false,
+  });
+
+  const {
+    data: labBookings = [],
+    isLoading: isLabLoading,
+    isError: isLabError,
+    error: labError,
+    refetch: refetchLab,
+  } = useQuery({
+    queryKey: ["dashboard-lab", user?.token],
+    queryFn: () => dashboardService.getMyLabAppointments(user?.token),
+    enabled: !!user?.token && activeTab === "lab",
+    retry: false,
+  });
+
+  const {
+    data: prescriptions = [],
+    isLoading: isPrescriptionsLoading,
+    isError: isPrescriptionsError,
+    error: prescriptionsError,
+    refetch: refetchPrescriptions,
+  } = useQuery({
+    queryKey: ["dashboard-prescriptions", user?.token],
+    queryFn: () => dashboardService.getMyPrescriptions(user?.token),
+    enabled: !!user?.token && activeTab === "prescriptions",
+    retry: false,
+  });
+
+  const summaryStatus = summaryError?.response?.status;
+  const isSessionExpired =
+    summaryStatus === 401 || error?.response?.status === 401;
+
+  useEffect(() => {
+    if (isSessionExpired) {
+      localStorage.removeItem("user");
+      dispatch(logoutUser());
+      navigate("/login");
+    }
+  }, [isSessionExpired, dispatch, navigate]);
+
+  const badgeCount = (value) => {
+    if (isSummaryError) return undefined;
+    if (isSummaryLoading) return "…";
+    return Number(value ?? 0);
+  };
+
   const TABS = [
     { id: "profile", label: "Profile Info", icon: User },
-    { id: "orders", label: "My Orders", icon: Package, count: 4 },
+    {
+      id: "orders",
+      label: "My Orders",
+      icon: Package,
+      count: badgeCount(summary?.ordersCount),
+    },
     {
       id: "appointments",
       label: "Doctor Appointments",
       icon: Calendar,
-      count: 2,
+      count: badgeCount(summary?.appointmentsCount),
     },
-    { id: "lab", label: "Lab Tests", icon: FlaskConical, count: 3 },
-    { id: "prescriptions", label: "Prescriptions", icon: FileText, count: 2 },
+    {
+      id: "lab",
+      label: "Lab Tests",
+      icon: FlaskConical,
+      count: badgeCount(summary?.labTestsCount),
+    },
+    {
+      id: "prescriptions",
+      label: "Prescriptions",
+      icon: FileText,
+      count: badgeCount(summary?.prescriptionsCount),
+    },
     { id: "settings", label: "Account Settings", icon: Settings },
   ];
 
@@ -111,7 +236,7 @@ export default function UserDashboardPage({ onNavigate }) {
       dispatch(getProfile(data));
     }
 
-    if (isError && error) {
+    if (isError && error && error?.response?.status !== 401) {
       toast.error(error.response?.data?.message || error.message);
     }
   }, [data, isSuccess, isError, error, dispatch]);
@@ -126,7 +251,7 @@ export default function UserDashboardPage({ onNavigate }) {
     return <LoaderScreen />;
   }
 
-  if (error) {
+  if (error && !isSessionExpired) {
     return (
       <div className="h-screen">
         <div className="h1 text-center">
@@ -135,6 +260,11 @@ export default function UserDashboardPage({ onNavigate }) {
       </div>
     );
   }
+
+  const activeOrders = (orders ?? []).filter((o) =>
+    ["pending", "confirmed"].includes(String(o?.status ?? "").toLowerCase()),
+  );
+  const latestOrder = (orders ?? [])[0];
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
@@ -187,6 +317,24 @@ export default function UserDashboardPage({ onNavigate }) {
         className="w-full justify-start overflow-x-auto"
       />
 
+      {isSummaryError && !isSessionExpired && (
+        <div className="bg-rose-50 border border-rose-200 text-rose-800 text-xs px-4 py-3 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <span>
+            Could not load your dashboard counts:{" "}
+            {summaryError?.response?.data?.message ||
+              summaryError?.message ||
+              "request failed"}
+          </span>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => refetchSummary()}
+            disabled={isSummaryRefetching}>
+            {isSummaryRefetching ? "Retrying…" : "Retry"}
+          </Button>
+        </div>
+      )}
+
       {saveSuccess && (
         <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs px-4 py-3 rounded-xl flex items-center justify-between animate-fade-in">
           <div className="flex items-center gap-2">
@@ -203,64 +351,266 @@ export default function UserDashboardPage({ onNavigate }) {
       {/* Tab 1: Profile Info Form */}
       {activeTab === "profile" && user && <ProfileFrom user={user} />}
 
-      {/* Tab 2: Orders Redirect */}
+      {/* Tab 2: Orders */}
       {activeTab === "orders" && (
-        <Card className="p-8 text-center space-y-4">
-          <Package className="w-12 h-12 text-teal-600 mx-auto" />
-          <h3 className="text-lg font-bold text-slate-800">
-            Medicine Order Management
-          </h3>
-          <p className="text-xs text-slate-500 max-w-md mx-auto">
-            You have active orders in transit. Manage doorstep deliveries and
-            view invoices in the dedicated orders hub.
-          </p>
-          <Button
-            variant="primary"
-            size="md"
-            onClick={() => onNavigate("orders")}>
-            Open Full Orders View →
-          </Button>
-        </Card>
+        <div className="space-y-4">
+          <Card className="p-8 text-center space-y-4">
+            <Package className="w-12 h-12 text-teal-600 mx-auto" />
+            <h3 className="text-lg font-bold text-slate-800">
+              Medicine Order Management
+            </h3>
+            {isOrdersLoading ? (
+              <p className="text-xs text-slate-500 max-w-md mx-auto">
+                Loading your orders…
+              </p>
+            ) : isOrdersError ? (
+              <div className="space-y-3">
+                <p className="text-xs text-slate-500 max-w-md mx-auto">
+                  Could not load your orders:{" "}
+                  {ordersError?.response?.data?.message ||
+                    ordersError?.message ||
+                    "request failed"}
+                </p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => refetchOrders()}>
+                  Retry
+                </Button>
+              </div>
+            ) : (orders ?? []).length === 0 ? (
+              <p className="text-xs text-slate-500 max-w-md mx-auto">
+                You have not placed any medicine orders yet. Find authentic
+                medicines with doorstep express dispatch.
+              </p>
+            ) : (
+              <div className="space-y-1">
+                <p className="text-xs text-slate-500 max-w-md mx-auto">
+                  You have {activeOrders.length} active order
+                  {activeOrders.length === 1 ? "" : "s"} in transit out of{" "}
+                  {(orders ?? []).length} total.
+                  {latestOrder
+                    ? ` Latest: ORD-${String(latestOrder._id).slice(-6).toUpperCase()} • ${formatDate(latestOrder.createdAt)} • ${formatMoney(latestOrder.product?.price)} • ${orderStatusMeta(latestOrder.status).label}.`
+                    : ""}
+                </p>
+              </div>
+            )}
+            <Button
+              variant="primary"
+              size="md"
+              onClick={() => go("/auth/orders", "orders")}>
+              Open Full Orders View →
+            </Button>
+          </Card>
+
+          {!isOrdersLoading && !isOrdersError && (orders ?? []).length > 0 && (
+            <div className="space-y-3">
+              <h3 className="text-base font-bold text-slate-900">
+                Recent Orders ({Math.min((orders ?? []).length, 3)} of{" "}
+                {(orders ?? []).length})
+              </h3>
+              {(orders ?? []).slice(0, 3).map((order) => {
+                const meta = orderStatusMeta(order.status);
+                return (
+                  <Card
+                    key={order._id}
+                    className="p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-mono text-slate-400 font-bold">
+                          ORD-{String(order._id).slice(-6).toUpperCase()}
+                        </span>
+                        <span className="text-xs text-slate-400">
+                          • {formatDate(order.createdAt)}
+                        </span>
+                        <Badge variant={meta.variant} size="sm" dot>
+                          {meta.label}
+                        </Badge>
+                      </div>
+                      <h4 className="font-bold text-slate-900 text-sm mt-1">
+                        {order.product?.name ?? "Product no longer available"}
+                      </h4>
+                      <p className="text-[11px] text-slate-500 mt-1">
+                        Total: {formatMoney(order.product?.price)}
+                      </p>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => go("/auth/orders", "orders")}>
+                      View Order
+                    </Button>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
+        </div>
       )}
 
-      {/* Tab 3: Appointments Redirect */}
+      {/* Tab 3: Appointments */}
       {activeTab === "appointments" && (
-        <Card className="p-8 text-center space-y-4">
-          <Calendar className="w-12 h-12 text-teal-600 mx-auto" />
-          <h3 className="text-lg font-bold text-slate-800">
-            Doctor Telehealth Consultations
-          </h3>
-          <p className="text-xs text-slate-500 max-w-md mx-auto">
-            You have upcoming consultations with Dr. Sarah Jenkins. Launch video
-            room or reschedule visits.
-          </p>
-          <Button
-            variant="primary"
-            size="md"
-            onClick={() => onNavigate("my-appointments")}>
-            Open Doctor Appointments View →
-          </Button>
-        </Card>
+        <div className="space-y-4">
+          <Card className="p-8 text-center space-y-4">
+            <Calendar className="w-12 h-12 text-teal-600 mx-auto" />
+            <h3 className="text-lg font-bold text-slate-800">
+              Doctor Telehealth Consultations
+            </h3>
+            {isAppointmentsLoading ? (
+              <p className="text-xs text-slate-500 max-w-md mx-auto">
+                Loading your appointments…
+              </p>
+            ) : isAppointmentsError ? (
+              <div className="space-y-3">
+                <p className="text-xs text-slate-500 max-w-md mx-auto">
+                  Could not load your appointments:{" "}
+                  {appointmentsError?.response?.data?.message ||
+                    appointmentsError?.message ||
+                    "request failed"}
+                </p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => refetchAppointments()}>
+                  Retry
+                </Button>
+              </div>
+            ) : (appointments ?? []).length === 0 ? (
+              <p className="text-xs text-slate-500 max-w-md mx-auto">
+                You have no doctor appointments yet. Book a consultation to get
+                started.
+              </p>
+            ) : (
+              <p className="text-xs text-slate-500 max-w-md mx-auto">
+                You have {(appointments ?? []).length} appointment
+                {(appointments ?? []).length === 1 ? "" : "s"}. Launch video
+                rooms or reschedule visits from the full view.
+              </p>
+            )}
+            <Button
+              variant="primary"
+              size="md"
+              onClick={() => go("/auth/my-appointments", "my-appointments")}>
+              Open Doctor Appointments View →
+            </Button>
+          </Card>
+
+          {!isAppointmentsLoading &&
+            !isAppointmentsError &&
+            (appointments ?? []).length > 0 && (
+              <div className="space-y-3">
+                {(appointments ?? []).slice(0, 3).map((apt) => {
+                  const meta = appointmentStatusMeta(apt.status);
+                  const specs = Array.isArray(apt.doctor?.specialization)
+                    ? apt.doctor.specialization.join(", ")
+                    : (apt.doctor?.specialization ?? "");
+                  return (
+                    <Card key={apt._id} className="p-5 space-y-2">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-mono text-slate-400 font-bold">
+                          APT-{String(apt._id).slice(-6).toUpperCase()}
+                        </span>
+                        <span className="text-xs text-slate-400">
+                          • {formatDate(apt.createdAt)}
+                        </span>
+                        <Badge variant={meta.variant} size="sm" dot>
+                          {meta.label}
+                        </Badge>
+                      </div>
+                      <h4 className="font-bold text-slate-900 text-sm">
+                        {apt.doctor?.clinicName ?? "—"}
+                        {specs ? ` • ${specs}` : ""}
+                      </h4>
+                      <p className="text-[11px] text-slate-500">
+                        {apt.doctor?.address ?? ""}
+                      </p>
+                    </Card>
+                  );
+                })}
+              </div>
+            )}
+        </div>
       )}
 
-      {/* Tab 4: Lab Tests Redirect */}
+      {/* Tab 4: Lab Tests */}
       {activeTab === "lab" && (
-        <Card className="p-8 text-center space-y-4">
-          <FlaskConical className="w-12 h-12 text-teal-600 mx-auto" />
-          <h3 className="text-lg font-bold text-slate-800">
-            Diagnostic Laboratory Bookings
-          </h3>
-          <p className="text-xs text-slate-500 max-w-md mx-auto">
-            Check sample collection status, track phlebotomist arrival, and
-            download verified PDF reports.
-          </p>
-          <Button
-            variant="primary"
-            size="md"
-            onClick={() => onNavigate("my-lab-appointments")}>
-            Open Lab Appointments View →
-          </Button>
-        </Card>
+        <div className="space-y-4">
+          <Card className="p-8 text-center space-y-4">
+            <FlaskConical className="w-12 h-12 text-teal-600 mx-auto" />
+            <h3 className="text-lg font-bold text-slate-800">
+              Diagnostic Laboratory Bookings
+            </h3>
+            {isLabLoading ? (
+              <p className="text-xs text-slate-500 max-w-md mx-auto">
+                Loading your lab bookings…
+              </p>
+            ) : isLabError ? (
+              <div className="space-y-3">
+                <p className="text-xs text-slate-500 max-w-md mx-auto">
+                  Could not load your lab bookings:{" "}
+                  {labError?.response?.data?.message ||
+                    labError?.message ||
+                    "request failed"}
+                </p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => refetchLab()}>
+                  Retry
+                </Button>
+              </div>
+            ) : (labBookings ?? []).length === 0 ? (
+              <p className="text-xs text-slate-500 max-w-md mx-auto">
+                You have no lab test bookings yet. Book a test to get started.
+              </p>
+            ) : (
+              <p className="text-xs text-slate-500 max-w-md mx-auto">
+                You have {(labBookings ?? []).length} lab booking
+                {(labBookings ?? []).length === 1 ? "" : "s"}. Track sample
+                collection status and download verified PDF reports.
+              </p>
+            )}
+            <Button
+              variant="primary"
+              size="md"
+              onClick={() =>
+                go("/auth/my-lab-appointments", "my-lab-appointments")
+              }>
+              Open Lab Appointments View →
+            </Button>
+          </Card>
+
+          {!isLabLoading && !isLabError && (labBookings ?? []).length > 0 && (
+            <div className="space-y-3">
+              {(labBookings ?? []).slice(0, 3).map((booking) => {
+                const meta = labStatusMeta(booking.status);
+                return (
+                  <Card key={booking._id} className="p-5 space-y-2">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-mono text-slate-400 font-bold">
+                        LAB-{String(booking._id).slice(-6).toUpperCase()}
+                      </span>
+                      <span className="text-xs text-slate-400">
+                        • {formatDate(booking.createdAt)}
+                      </span>
+                      <Badge variant={meta.variant} size="sm" dot>
+                        {meta.label}
+                      </Badge>
+                    </div>
+                    <h4 className="font-bold text-slate-900 text-sm">
+                      {booking.pathologyTest?.title ??
+                        booking.pathologist?.laboratoryName ??
+                        "Lab Test"}
+                    </h4>
+                    <p className="text-[11px] text-slate-500">
+                      {booking.pathologist?.laboratoryAddress ?? ""}
+                    </p>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
+        </div>
       )}
 
       {/* Tab 5: Prescriptions */}
@@ -268,61 +618,107 @@ export default function UserDashboardPage({ onNavigate }) {
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="text-base font-bold text-slate-900">
-              Verified Digital Prescriptions ({MOCK_PRESCRIPTIONS.length})
+              Verified Digital Prescriptions (
+              {isPrescriptionsLoading ? "…" : (prescriptions ?? []).length})
             </h3>
             <Button
               variant="outline"
               size="sm"
-              onClick={() => onNavigate("ai-prescription")}
+              onClick={() =>
+                go("/auth/ai-hub/prescription", "ai-prescription")
+              }
               icon={FileText}>
               Scan New Prescription with AI
             </Button>
           </div>
 
-          <div className="space-y-3">
-            {MOCK_PRESCRIPTIONS.map((rx) => (
-              <Card
-                key={rx.id}
-                className="p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div className="flex items-start gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-teal-50 text-teal-700 flex items-center justify-center shrink-0">
-                    <FileText className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-mono text-slate-400 font-bold">
-                        {rx.id}
-                      </span>
-                      <span className="text-xs text-slate-400">
-                        • {rx.date}
-                      </span>
+          {isPrescriptionsLoading ? (
+            <Card className="p-8 text-center">
+              <p className="text-xs text-slate-500">
+                Loading your prescriptions…
+              </p>
+            </Card>
+          ) : isPrescriptionsError ? (
+            <Card className="p-8 text-center space-y-3">
+              <p className="text-xs text-slate-500">
+                Could not load your prescriptions:{" "}
+                {prescriptionsError?.response?.data?.message ||
+                  prescriptionsError?.message ||
+                  "request failed"}
+              </p>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => refetchPrescriptions()}>
+                Retry
+              </Button>
+            </Card>
+          ) : (prescriptions ?? []).length === 0 ? (
+            <Card className="p-8 text-center space-y-2">
+              <FileText className="w-10 h-10 text-slate-300 mx-auto" />
+              <h4 className="font-bold text-slate-800 text-sm">
+                No prescriptions yet
+              </h4>
+              <p className="text-xs text-slate-500">
+                Scan a prescription with AI to see it listed here.
+              </p>
+            </Card>
+          ) : (
+            <div className="space-y-3">
+              {(prescriptions ?? []).map((rx) => {
+                const meds = (rx.medicines ?? [])
+                  .map((m) => m.name)
+                  .filter(Boolean)
+                  .join(", ");
+                return (
+                  <Card
+                    key={rx._id}
+                    className="p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div className="flex items-start gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-teal-50 text-teal-700 flex items-center justify-center shrink-0">
+                        <FileText className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-mono text-slate-400 font-bold">
+                            RX-{String(rx._id).slice(-6).toUpperCase()}
+                          </span>
+                          <span className="text-xs text-slate-400">
+                            • {rx.date ?? formatDate(rx.createdAt)}
+                          </span>
+                        </div>
+                        <h4 className="font-bold text-slate-900 text-sm mt-0.5">
+                          {rx.doctor_name ?? "—"}
+                        </h4>
+                        {rx.diagnosis_notes ? (
+                          <p className="text-xs text-teal-700 font-medium">
+                            {rx.diagnosis_notes}
+                          </p>
+                        ) : null}
+                        {meds ? (
+                          <p className="text-[11px] text-slate-500 mt-1">
+                            Medications: {meds}
+                          </p>
+                        ) : null}
+                      </div>
                     </div>
-                    <h4 className="font-bold text-slate-900 text-sm mt-0.5">
-                      {rx.doctor}
-                    </h4>
-                    <p className="text-xs text-teal-700 font-medium">
-                      {rx.diagnosis}
-                    </p>
-                    <p className="text-[11px] text-slate-500 mt-1">
-                      Medications: {rx.medicines}
-                    </p>
-                  </div>
-                </div>
 
-                <div className="flex items-center gap-2">
-                  <Button variant="outline" size="sm" icon={Download}>
-                    Download PDF
-                  </Button>
-                  <Button
-                    variant="primary"
-                    size="sm"
-                    onClick={() => onNavigate("pharmacy")}>
-                    Order Meds
-                  </Button>
-                </div>
-              </Card>
-            ))}
-          </div>
+                    <div className="flex items-center gap-2">
+                      <Button variant="outline" size="sm" icon={Download}>
+                        Download PDF
+                      </Button>
+                      <Button
+                        variant="primary"
+                        size="sm"
+                        onClick={() => go("/pharmacy", "pharmacy")}>
+                        Order Meds
+                      </Button>
+                    </div>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
 

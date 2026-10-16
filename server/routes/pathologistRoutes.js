@@ -7,6 +7,11 @@ const router = express.Router();
 router.get("/", pathologistController.getAllPathologists);
 router.get("/tests", pathologistController.getAllPathologyTests);
 router.get(
+  "/my-appointments",
+  protect.forUser,
+  pathologistController.getMyAppointments,
+);
+router.get(
   "/appointments",
   protect.forUser,
   pathologistController.getALlAppointments,

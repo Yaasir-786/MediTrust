@@ -41,7 +41,6 @@ export const ALL_PAGES = [
     { id: 'ai-hub', label: '15. AI Hub' },
     { id: 'ai-chat', label: '16. AI Chat' },
     { id: 'ai-prescription', label: '17. Prescription Explainer' },
-    { id: 'ai-symptoms', label: '18. Find Meds by Symptom' },
   ]},
   { group: 'Portals', items: [
     { id: 'dashboard', label: '19. User Dashboard' },

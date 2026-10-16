@@ -157,9 +157,20 @@ const bookAppointment = async (req, res) => {
   res.status(201).json(appointment);
 };
 
+const getMyAppointments = async (req, res) => {
+  const userId = req.user._id ?? req.user.id;
+
+  const appointments = await DoctorAppointment.find({ user: userId })
+    .populate({ path: "doctor", populate: { path: "user", select: "-password" } })
+    .sort({ createdAt: -1 });
+
+  return res.status(200).json(appointments ?? []);
+};
+
 const doctorController = {
   becomeDoctor,
   getALlAppointments,
+  getMyAppointments,
   getAppointment,
   getAllDoctors,
   updateAppointment,

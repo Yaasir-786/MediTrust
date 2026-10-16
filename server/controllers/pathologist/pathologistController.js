@@ -214,11 +214,23 @@ const getAppointment = async (req, res) => {
   res.status(200).json(appointment);
 };
 
+const getMyAppointments = async (req, res) => {
+  const userId = req.user._id ?? req.user.id;
+
+  const appointments = await PathologyAppointment.find({ user: userId })
+    .populate("pathologist")
+    .populate("pathologyTest")
+    .sort({ createdAt: -1 });
+
+  return res.status(200).json(appointments ?? []);
+};
+
 const pathologistController = {
   becomePathologist,
   addPathologyTest,
   bookTest,
   getALlAppointments,
+  getMyAppointments,
   updateAppointment,
   getAppointment,
   getAllPathologists,

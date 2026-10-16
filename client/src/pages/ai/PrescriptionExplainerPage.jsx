@@ -1,77 +1,130 @@
-import React, { useState } from 'react';
-import { 
-  Sparkles, 
-  Upload, 
-  FileText, 
-  Scan, 
-  CheckCircle2, 
-  AlertTriangle, 
-  Clock, 
-  Pill, 
-  ShieldCheck, 
-  ArrowRight, 
-  RotateCw,
-  Eye
+import React, { useEffect, useRef, useState } from 'react';
+import {
+  Sparkles,
+  Upload,
+  FileText,
+  Scan,
+  AlertTriangle,
+  Clock,
+  Pill,
+  X,
+  RefreshCw,
+  ImagePlus
 } from 'lucide-react';
+import { useSelector, useDispatch } from 'react-redux';
+import { useNavigate } from 'react-router-dom';
 import Card from '../../components/common/Card';
 import Badge from '../../components/common/Badge';
 import Button from '../../components/common/Button';
+import aiService from '../../services/aiService';
+import { logoutUser } from '../../features/auth/authSlice';
 
-// ==========================================
-// MOCK DATA (Hardcoded for teaching purposes)
-// Later replace with: api.ai.scanPrescription(file)
-// ==========================================
+const ACCEPTED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+const MAX_SIZE_MB = 20;
+const MAX_SIZE_BYTES = MAX_SIZE_MB * 1024 * 1024;
 
-const MOCK_PARSED_PRESCRIPTION = {
-  prescriptionId: 'RX-SCAN-9042',
-  prescribedBy: 'Dr. Sarah Jenkins, MD (Cardiology)',
-  patientName: 'Sarah Connor',
-  date: 'Sep 22, 2026',
-  confidenceScore: '98.6% Optical Clarity',
-  medicines: [
-    {
-      name: 'Amoxicillin Trihydrate 500mg',
-      brand: 'Novartis Healthcare',
-      schedule: 'Morning: 1 | Afternoon: 0 | Night: 1',
-      scheduleVisual: [1, 0, 1], // Morning, Afternoon, Night
-      duration: '7 Days (Total 14 Capsules)',
-      instruction: 'Take with full glass of water after food',
-      purpose: 'Bacterial upper respiratory infection treatment',
-      interactions: 'Avoid taking at exact same hour as dairy or antacids',
-      price: 18.50,
-      inStock: true,
-    },
-    {
-      name: 'Lipitor (Atorvastatin) 20mg',
-      brand: 'Pfizer Bio',
-      schedule: 'Morning: 0 | Afternoon: 0 | Night: 1',
-      scheduleVisual: [0, 0, 1],
-      duration: '30 Days (Total 30 Tablets)',
-      instruction: 'Take before bedtime with water',
-      purpose: 'Cardiovascular lipid stabilization and LDL reduction',
-      interactions: 'Avoid consuming grapefruit juice during statin therapy',
-      price: 32.00,
-      inStock: true,
-    },
-  ],
-};
+const isUnclear = (value) =>
+  value === null || value === undefined || String(value).trim() === '';
 
 export default function PrescriptionExplainerPage({ onNavigate }) {
-  const [isScanning, setIsScanning] = useState(false);
-  const [hasScanned, setHasScanned] = useState(true);
+  const { user } = useSelector((state) => state.auth);
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
+  const fileInputRef = useRef(null);
 
-  const triggerMockScan = () => {
+  const [file, setFile] = useState(null);
+  const [previewUrl, setPreviewUrl] = useState('');
+  const [validationError, setValidationError] = useState('');
+  const [isScanning, setIsScanning] = useState(false);
+  const [scanError, setScanError] = useState('');
+  const [result, setResult] = useState(null);
+
+  const go = (route, legacyId) => {
+    if (typeof onNavigate === 'function' && legacyId) {
+      try {
+        onNavigate(legacyId);
+      } catch {
+        // ignore legacy demo navigator errors
+      }
+    }
+    navigate(route);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+    };
+  }, [previewUrl]);
+
+  const validateFile = (candidate) => {
+    if (!candidate) return 'Please choose an image file.';
+    if (!ACCEPTED_TYPES.includes(candidate.type)) {
+      return 'Unsupported file type. Use JPG, JPEG, PNG, or WEBP.';
+    }
+    if (candidate.size > MAX_SIZE_BYTES) {
+      return `File is too large. Keep it under ${MAX_SIZE_MB}MB.`;
+    }
+    return '';
+  };
+
+  const handleSelectFile = (candidate) => {
+    const problem = validateFile(candidate);
+    setValidationError(problem);
+    if (problem) return;
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
+    setFile(candidate);
+    setPreviewUrl(URL.createObjectURL(candidate));
+    setScanError('');
+    setResult(null);
+  };
+
+  const handleRemoveFile = () => {
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
+    setFile(null);
+    setPreviewUrl('');
+    setValidationError('');
+    setScanError('');
+    setResult(null);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const handleAnalyze = async () => {
+    const problem = validateFile(file);
+    if (problem) {
+      setValidationError(problem);
+      return;
+    }
     setIsScanning(true);
-    setHasScanned(false);
-    setTimeout(() => {
+    setScanError('');
+    try {
+      const prescription = await aiService.scanPrescription({
+        file,
+        token: user?.token,
+      });
+      setResult(prescription);
+    } catch (err) {
+      if (err?.response?.status === 401) {
+        localStorage.removeItem('user');
+        dispatch(logoutUser());
+        navigate('/login');
+        return;
+      }
+      setResult(null);
+      setScanError(
+        err?.response?.data?.error ||
+          err?.response?.data?.details ||
+          err?.response?.data?.message ||
+          err?.message ||
+          'Could not analyze the prescription.',
+      );
+    } finally {
       setIsScanning(false);
-      setHasScanned(true);
-    }, 2500);
+    }
   };
 
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-10">
-      
+
       {/* Header */}
       <div className="text-center max-w-2xl mx-auto space-y-2">
         <Badge variant="purple" size="sm">
@@ -87,7 +140,7 @@ export default function PrescriptionExplainerPage({ onNavigate }) {
 
       {/* Upload Zone & Scan State */}
       <Card className="p-8 border-dashed border-2 border-indigo-200 hover:border-indigo-400 bg-indigo-50/20 text-center transition-all">
-        
+
         {isScanning ? (
           /* Animated Scanning State */
           <div className="py-10 space-y-4 max-w-md mx-auto animate-pulse">
@@ -113,35 +166,94 @@ export default function PrescriptionExplainerPage({ onNavigate }) {
           </div>
         ) : (
           /* Dropzone */
-          <div className="py-6 space-y-4">
-            <div className="w-16 h-16 rounded-2xl bg-indigo-100 text-indigo-600 flex items-center justify-center mx-auto shadow-sm">
-              <Upload className="w-8 h-8" />
-            </div>
+          <div
+            className="py-6 space-y-4"
+            onDragOver={(e) => e.preventDefault()}
+            onDrop={(e) => {
+              e.preventDefault();
+              if (e.dataTransfer?.files?.[0]) handleSelectFile(e.dataTransfer.files[0]);
+            }}
+          >
+            {previewUrl ? (
+              <div className="max-w-sm mx-auto space-y-3">
+                <div className="relative rounded-2xl overflow-hidden border border-indigo-200 shadow-sm">
+                  <img
+                    src={previewUrl}
+                    alt="Selected prescription preview"
+                    className="w-full max-h-72 object-contain bg-white"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleRemoveFile}
+                    className="absolute top-2 right-2 p-1.5 rounded-lg bg-white/90 text-slate-600 hover:text-rose-600 shadow"
+                    title="Remove image"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+                <p className="text-xs text-slate-500 truncate">{file?.name}</p>
+              </div>
+            ) : (
+              <div
+                className="w-16 h-16 rounded-2xl bg-indigo-100 text-indigo-600 flex items-center justify-center mx-auto shadow-sm cursor-pointer"
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <Upload className="w-8 h-8" />
+              </div>
+            )}
 
             <div className="space-y-1">
               <h3 className="text-base font-bold text-slate-800">
-                Drag & Drop Your Prescription Image or PDF
+                {previewUrl ? 'Prescription Image Ready' : "Drag & Drop Your Prescription Image"}
               </h3>
               <p className="text-xs text-slate-400">
-                Supports JPG, PNG, PDF up to 20MB. Clear lighting produces best accuracy.
+                Supports JPG, JPEG, PNG, WEBP up to {MAX_SIZE_MB}MB. Clear lighting produces best accuracy.
               </p>
             </div>
 
-            <div className="flex items-center justify-center gap-3 pt-2">
+            {validationError && (
+              <p className="text-xs font-semibold text-rose-600">{validationError}</p>
+            )}
+
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              className="hidden"
+              onChange={(e) => {
+                if (e.target.files?.[0]) handleSelectFile(e.target.files[0]);
+              }}
+            />
+
+            <div className="flex items-center justify-center gap-3 pt-2 flex-wrap">
+              {!previewUrl && (
+                <Button
+                  variant="outline"
+                  size="md"
+                  onClick={() => fileInputRef.current?.click()}
+                  icon={ImagePlus}
+                >
+                  Choose Image
+                </Button>
+              )}
+              {previewUrl && (
+                <Button
+                  variant="outline"
+                  size="md"
+                  onClick={() => fileInputRef.current?.click()}
+                  icon={RefreshCw}
+                >
+                  Replace Image
+                </Button>
+              )}
               <Button
                 variant="ai"
                 size="md"
-                onClick={triggerMockScan}
+                onClick={handleAnalyze}
+                disabled={!file || isScanning}
                 icon={Sparkles}
               >
-                Upload & Scan New Slip
-              </Button>
-              <Button
-                variant="outline"
-                size="md"
-                onClick={() => setHasScanned(!hasScanned)}
-              >
-                {hasScanned ? 'Reset to Upload Demo' : 'View Sample Results'}
+                Analyze Prescription
               </Button>
             </div>
           </div>
@@ -149,112 +261,129 @@ export default function PrescriptionExplainerPage({ onNavigate }) {
 
       </Card>
 
-      {/* Extracted Results Section */}
-      {hasScanned && !isScanning && (
+      {/* Error State */}
+      {scanError && !isScanning && (
+        <Card className="p-6 text-center space-y-3 border-rose-200">
+          <p className="text-sm font-semibold text-rose-700">
+            Could not analyze this prescription
+          </p>
+          <p className="text-xs text-slate-500 max-w-md mx-auto">{scanError}</p>
+          <Button variant="outline" size="sm" onClick={handleAnalyze} icon={RefreshCw}>
+            Retry Analysis
+          </Button>
+        </Card>
+      )}
+
+      {/* Extracted Results Section (actual backend response fields only) */}
+      {result && !isScanning && (
         <div className="space-y-6 animate-in fade-in duration-300">
-          
+
           {/* Metadata Strip */}
           <div className="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-xs font-mono text-slate-400 font-bold">{MOCK_PARSED_PRESCRIPTION.prescriptionId}</span>
+                <span className="text-xs font-mono text-slate-400 font-bold">
+                  RX-{String(result._id ?? '').slice(-6).toUpperCase()}
+                </span>
                 <Badge variant="success" size="sm" dot>
-                  {MOCK_PARSED_PRESCRIPTION.confidenceScore}
+                  AI Extracted
                 </Badge>
               </div>
               <h3 className="text-base font-bold text-slate-900 mt-1">
-                Prescribed by: {MOCK_PARSED_PRESCRIPTION.prescribedBy}
+                Prescribed by: {isUnclear(result.doctor_name) ? 'Unclear — please verify' : result.doctor_name}
               </h3>
-              <p className="text-xs text-slate-500">Patient: {MOCK_PARSED_PRESCRIPTION.patientName} • Date: {MOCK_PARSED_PRESCRIPTION.date}</p>
+              <p className="text-xs text-slate-500">
+                Patient: {isUnclear(result.patient_name) ? 'Unclear — please verify' : result.patient_name}
+                {' • '}Date: {isUnclear(result.date) ? 'Unclear — please verify' : result.date}
+              </p>
+              {result.diagnosis_notes && (
+                <p className="text-xs text-teal-700 font-medium mt-1">
+                  Notes: {result.diagnosis_notes}
+                </p>
+              )}
             </div>
 
             <Button
               variant="outline"
               size="sm"
-              onClick={() => onNavigate('pharmacy')}
+              onClick={() => go('/pharmacy', 'pharmacy')}
               icon={Pill}
             >
-              Order All Medicines via Pharmacy
+              Order Medicines via Pharmacy
             </Button>
           </div>
+
+          {/* Scanned image reference */}
+          {result.image && (
+            <div className="flex items-center gap-3 text-xs text-slate-500">
+              <FileText className="w-4 h-4 text-teal-600 shrink-0" />
+              <a
+                href={result.image}
+                target="_blank"
+                rel="noreferrer"
+                className="font-semibold text-teal-700 hover:underline truncate"
+              >
+                View scanned prescription image
+              </a>
+            </div>
+          )}
 
           {/* Cards for each extracted medicine */}
           <div className="space-y-4">
             <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500">
-              Extracted Medications & Dosage Schedule ({MOCK_PARSED_PRESCRIPTION.medicines.length})
+              Extracted Medications ({(result.medicines ?? []).length})
             </h3>
 
-            {MOCK_PARSED_PRESCRIPTION.medicines.map((med, index) => (
-              <Card key={index} className="p-6 border-slate-200 shadow-xs space-y-4">
-                
-                <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <span className="w-5 h-5 rounded-md bg-teal-100 text-teal-800 text-xs font-bold flex items-center justify-center">
-                        {index + 1}
-                      </span>
-                      <h4 className="text-base font-extrabold text-slate-900">{med.name}</h4>
-                    </div>
-                    <p className="text-xs text-slate-400 pl-7">{med.brand}</p>
-                  </div>
+            {(result.medicines ?? []).length === 0 && (
+              <Card className="p-6 text-center">
+                <p className="text-xs text-slate-500">
+                  No medicines could be read clearly from this image. Try a sharper photo with better lighting.
+                </p>
+              </Card>
+            )}
 
-                  <div className="flex items-center gap-3">
-                    <span className="text-base font-extrabold text-slate-900">${med.price.toFixed(2)}</span>
-                    <Button
-                      variant="primary"
-                      size="sm"
-                      onClick={() => onNavigate('product-detail')}
-                    >
-                      Order Now
-                    </Button>
-                  </div>
+            {(result.medicines ?? []).map((med, index) => (
+              <Card key={index} className="p-6 border-slate-200 shadow-xs space-y-4">
+
+                <div className="flex items-start gap-2">
+                  <span className="w-5 h-5 rounded-md bg-teal-100 text-teal-800 text-xs font-bold flex items-center justify-center shrink-0">
+                    {index + 1}
+                  </span>
+                  <h4 className="text-base font-extrabold text-slate-900">
+                    {isUnclear(med?.name) ? 'Unclear medicine — please verify' : med.name}
+                  </h4>
                 </div>
 
-                {/* Schedule Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-2">
-                  
-                  {/* Daily Timing Pills */}
+
                   <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200/80 space-y-1.5">
                     <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">
-                      Daily Timing (Morning - Noon - Night)
-                    </span>
-                    <div className="flex items-center gap-2">
-                      <span className={`px-2.5 py-1 rounded-lg text-xs font-bold ${med.scheduleVisual[0] ? 'bg-teal-600 text-white' : 'bg-slate-200 text-slate-400'}`}>
-                        Morning ({med.scheduleVisual[0]})
-                      </span>
-                      <span className={`px-2.5 py-1 rounded-lg text-xs font-bold ${med.scheduleVisual[1] ? 'bg-teal-600 text-white' : 'bg-slate-200 text-slate-400'}`}>
-                        Noon ({med.scheduleVisual[1]})
-                      </span>
-                      <span className={`px-2.5 py-1 rounded-lg text-xs font-bold ${med.scheduleVisual[2] ? 'bg-teal-600 text-white' : 'bg-slate-200 text-slate-400'}`}>
-                        Night ({med.scheduleVisual[2]})
-                      </span>
-                    </div>
-                    <span className="text-xs text-slate-500 block pt-1">{med.duration}</span>
-                  </div>
-
-                  {/* Food Instruction */}
-                  <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200/80 space-y-1">
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">
-                      Administration Guideline
+                      Dosage & Schedule
                     </span>
                     <p className="text-xs font-medium text-slate-800 flex items-start gap-1.5">
                       <Clock className="w-3.5 h-3.5 text-teal-600 shrink-0 mt-0.5" />
-                      {med.instruction}
+                      Dosage: {isUnclear(med?.dosage) ? 'Unclear — please verify' : med.dosage}
                     </p>
-                    <p className="text-[11px] text-slate-500 pt-1">
-                      Indication: {med.purpose}
-                    </p>
+                    <div className="text-[11px] text-slate-500 pt-1 space-y-0.5">
+                      <p>Frequency: {isUnclear(med?.frequency) ? 'Unclear — please verify' : med.frequency}</p>
+                      <p>Duration: {isUnclear(med?.duration) ? 'Unclear — please verify' : med.duration}</p>
+                    </div>
                   </div>
 
-                  {/* Safety & Interactions */}
-                  <div className="bg-amber-50/60 p-3.5 rounded-xl border border-amber-200/70 space-y-1">
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-amber-800 block">
-                      Safety & Food Precautions
+                  <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200/80 space-y-1 md:col-span-2">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">
+                      Pharmacist Notes & Uncertainty Flags
                     </span>
-                    <p className="text-xs text-amber-900 flex items-start gap-1.5">
-                      <AlertTriangle className="w-3.5 h-3.5 text-amber-600 shrink-0 mt-0.5" />
-                      {med.interactions}
-                    </p>
+                    {isUnclear(med?.notes) ? (
+                      <p className="text-xs text-slate-500">
+                        No additional notes extracted for this medicine.
+                      </p>
+                    ) : (
+                      <p className="text-xs text-amber-900 flex items-start gap-1.5">
+                        <AlertTriangle className="w-3.5 h-3.5 text-amber-600 shrink-0 mt-0.5" />
+                        {med.notes}
+                      </p>
+                    )}
                   </div>
 
                 </div>

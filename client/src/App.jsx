@@ -32,10 +32,10 @@ import PathologistApplicationPage from "./pages/lab/PathologistApplicationPage";
 import AiHubPage from "./pages/ai/AiHubPage";
 import AiChatPage from "./pages/ai/AiChatPage";
 import PrescriptionExplainerPage from "./pages/ai/PrescriptionExplainerPage";
-import FindMedicinesBySymptomPage from "./pages/ai/FindMedicinesBySymptomPage";
 import UserDashboardPage from "./pages/dashboard/UserDashboardPage";
 import AdminDashboardPage from "./pages/admin/AdminDashboardPage";
 import PrivateComponent from "./components/PrivateComponent";
+import AdminRoute from "./components/AdminRoute";
 import { useSelector } from "react-redux";
 import AdminOrdersPage from "./pages/admin/AdminOrdersPage";
 import AdminProductsPage from "./pages/admin/AdminProductsPage";
@@ -61,6 +61,12 @@ export default function App() {
           <Route path="/doctors" element={<DoctorListingPage />} />
           <Route path="/lab" element={<LabTestListingPage />} />
           <Route path="/auth" element={<PrivateComponent />}>
+            <Route path="orders" element={<MyOrdersPage />} />
+            <Route path="my-appointments" element={<MyAppointmentsPage />} />
+            <Route
+              path="my-lab-appointments"
+              element={<MyLabAppointmentsPage />}
+            />
             <Route path="ai-hub" element={<AiHubPage />} />
             <Route path="ai-hub/chat" element={<AiChatPage />} />
             <Route
@@ -68,18 +74,20 @@ export default function App() {
               element={<PrescriptionExplainerPage />}
             />
             <Route path="dashboard" element={<UserDashboardPage />} />
-            <Route path="admin" element={<AdminDashboardPage />} />
-            <Route path="admin/orders" element={<AdminOrdersPage />} />
-            <Route path="admin/products" element={<AdminProductsPage />} />
-            <Route path="admin/doctors" element={<AdminDoctorsPage />} />
-            <Route
-              path="admin/pathologists"
-              element={<AdminPathologistsPage />}
-            />
-            <Route path="admin/users" element={<AdminAllUsersPage />} />
+            <Route element={<AdminRoute />}>
+              <Route path="admin" element={<AdminDashboardPage />} />
+              <Route path="admin/orders" element={<AdminOrdersPage />} />
+              <Route path="admin/products" element={<AdminProductsPage />} />
+              <Route path="admin/doctors" element={<AdminDoctorsPage />} />
+              <Route
+                path="admin/pathologists"
+                element={<AdminPathologistsPage />}
+              />
+              <Route path="admin/users" element={<AdminAllUsersPage />} />
+            </Route>
           </Route>
         </Routes>
-        {user?.userType !== "ADMIN" && <Footer />}
+        {String(user?.userType ?? "").toUpperCase() !== "ADMIN" && <Footer />}
         <Toaster />
       </Router>
     </QueryClientProvider>

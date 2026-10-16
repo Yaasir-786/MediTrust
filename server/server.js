@@ -1,3 +1,4 @@
+import "dotenv/config";
 import dns from "dns";
 dns.setDefaultResultOrder("ipv4first");
 dns.setServers(["8.8.8.8", "8.8.4.4"]);
@@ -15,6 +16,7 @@ import productRoutes from "./routes/productRoutes.js";
 import pathologistRoutes from "./routes/pathologistRoutes.js";
 import doctorRoutes from "./routes/doctorRoutes.js";
 import orderRoutes from "./routes/orderRoutes.js";
+import dashboardRoutes from "./routes/dashboardRoutes.js";
 
 dotenv.config();
 
@@ -48,6 +50,9 @@ app.use("/api/doctor", doctorRoutes);
 
 // Order Routes
 app.use("/api/order", orderRoutes);
+
+// Dashboard Routes (authenticated user summary counts)
+app.use("/api/dashboard", dashboardRoutes);
 
 // error Handle
 app.use(errorHandler);

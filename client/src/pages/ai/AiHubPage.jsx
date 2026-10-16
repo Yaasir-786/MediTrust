@@ -3,7 +3,6 @@ import {
   Sparkles, 
   MessageSquare, 
   FileSearch, 
-  Activity, 
   ArrowRight, 
   ShieldAlert, 
   BrainCircuit, 
@@ -15,8 +14,27 @@ import {
 import Card from '../../components/common/Card';
 import Badge from '../../components/common/Badge';
 import Button from '../../components/common/Button';
+import { useNavigate } from 'react-router-dom';
+
+const AI_ROUTE_MAP = {
+  'ai-chat': '/auth/ai-hub/chat',
+  'ai-prescription': '/auth/ai-hub/prescription',
+};
 
 export default function AiHubPage({ onNavigate }) {
+  const navigate = useNavigate();
+
+  const handleCardClick = (featId) => {
+    const to = AI_ROUTE_MAP[featId];
+    if (to) navigate(to);
+    if (typeof onNavigate === 'function') {
+      try {
+        onNavigate(featId);
+      } catch {
+        // ignore legacy demo navigator errors
+      }
+    }
+  };
   const AI_FEATURES = [
     {
       id: 'ai-chat',
@@ -35,15 +53,6 @@ export default function AiHubPage({ onNavigate }) {
       badge: 'Vision Scanner',
       color: 'from-violet-600 to-purple-600',
       actionText: 'Scan Prescription Slip',
-    },
-    {
-      id: 'ai-symptoms',
-      title: 'Find Medicines by Symptom',
-      desc: 'Describe what you are feeling in plain words. MediTrust AI maps symptoms to proven over-the-counter remedies and connects directly to pharmacy.',
-      icon: Activity,
-      badge: 'Symptom Matcher',
-      color: 'from-purple-600 to-teal-600',
-      actionText: 'Match Symptoms to Meds',
     },
   ];
 
@@ -99,15 +108,24 @@ export default function AiHubPage({ onNavigate }) {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {AI_FEATURES.map((feat) => {
             const Icon = feat.icon;
             return (
               <Card
                 key={feat.id}
                 hoverEffect
-                onClick={() => onNavigate(feat.id)}
-                className="p-8 flex flex-col justify-between h-full border-slate-200 hover:border-indigo-400 group relative overflow-hidden"
+                role="button"
+                tabIndex={0}
+                aria-label={feat.title}
+                onClick={() => handleCardClick(feat.id)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    handleCardClick(feat.id);
+                  }
+                }}
+                className="p-8 flex flex-col justify-between h-full border-slate-200 hover:border-indigo-400 group relative overflow-hidden cursor-pointer"
               >
                 <div>
                   <div className="flex items-center justify-between mb-6">

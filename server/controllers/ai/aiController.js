@@ -189,48 +189,136 @@ Here is the data: ${JSON.stringify(payload)}
   }
 };
 
-const chatWithAi = async (req, res) => {
-  const { text } = req.body;
+const AI_CHAT_MODEL = process.env.GEMINI_MODEL ?? "gemini-3.6-flash";
+const AI_CHAT_MAX_MESSAGE_CHARS = 2000;
+const AI_CHAT_MAX_HISTORY_MESSAGES = 20;
+const AI_CHAT_MAX_CONTEXT_CHARS = 12000;
 
-  if (!text) {
-    res.status(409);
-    throw new Error("Please Fill All Details");
-  }
-
-  const SYSTEM_INSTRUCTION = `You are MediTrust's basic health guidance assistant. Rules you MUST follow:
-- Give only general, non-diagnostic health information.
-- Never provide a diagnosis and never recommend specific dosages.
+const AI_DOCTOR_SYSTEM_INSTRUCTION = `You are MediTrust's basic health guidance assistant. Rules you MUST follow:
+- Give only general, non-diagnostic health education and cautious, evidence-based information.
+- You are NOT a licensed physician. Never claim to be one and never provide a definitive medical diagnosis.
+- Never prescribe medicines, invent dosages, or recommend starting, stopping, or changing prescription medications.
 - Keep answers short and easy to understand.
 - Always suggest booking a real doctor on MediTrust for anything specific or urgent.
-- If the question is an emergency or serious symptom, urge seeking immediate professional care. here is my query : ${text}`;
+- If the question describes an emergency or serious symptoms, urge seeking immediate professional care.`;
+
+const getChatClient = () => {
+  if (!process.env.GEMINI_API_KEY) {
+    return null;
+  }
+  return new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+};
+
+const toChatContents = (history, message) => {
+  const valid = (Array.isArray(history) ? history : [])
+    .filter(
+      (m) =>
+        m &&
+        (m.role === "user" || m.role === "model") &&
+        typeof m.text === "string" &&
+        m.text.trim(),
+    )
+    .slice(-AI_CHAT_MAX_HISTORY_MESSAGES)
+    .map((m) => ({
+      role: m.role,
+      parts: [{ text: m.text.slice(0, AI_CHAT_MAX_MESSAGE_CHARS) }],
+    }));
+
+  let used = valid.reduce((n, m) => n + m.parts[0].text.length, 0);
+  while (valid.length > 0 && used + message.length > AI_CHAT_MAX_CONTEXT_CHARS) {
+    used -= valid.shift().parts[0].text.length;
+  }
+
+  valid.push({ role: "user", parts: [{ text: message }] });
+  return valid;
+};
+
+const chatWithAi = async (req, res) => {
+  const { message, history } = req.body ?? {};
+
+  if (typeof message !== "string" || !message.trim()) {
+    res.status(400);
+    throw new Error("Please enter a message.");
+  }
+
+  const text = message.trim();
+  if (text.length > AI_CHAT_MAX_MESSAGE_CHARS) {
+    res.status(413);
+    throw new Error(
+      `Message is too long. Keep it under ${AI_CHAT_MAX_MESSAGE_CHARS} characters.`,
+    );
+  }
+
+  const client = getChatClient();
+  if (!client) {
+    res.status(503);
+    throw new Error("AI service is not configured. Please try again later.");
+  }
 
   try {
-    const response = await ai.models.generateContent({
-      model: "gemini-3.6-flash",
-      contents: [
-        {
-          role: "user",
-          parts: [{ text: SYSTEM_INSTRUCTION }],
-        },
-      ],
+    const response = await client.models.generateContent({
+      model: AI_CHAT_MODEL,
+      contents: toChatContents(history, text),
       config: {
-        responseMimeType: "application/json",
+        systemInstruction: AI_DOCTOR_SYSTEM_INSTRUCTION,
       },
     });
 
-    const text = response.text; // property, not a function, in the new SDK
-    const data = JSON.parse(text);
+    const reply = response.text?.trim();
+    if (!reply) {
+      res.status(502);
+      throw new Error("AI service returned an empty response. Please retry.");
+    }
 
-    res.json(data);
+    res.status(200).json({ reply });
   } catch (error) {
-    console.log(error.message);
-    res.status(409);
-    throw new Error("Error In Getting Data From Server!");
+    if (res.statusCode && res.statusCode !== 200) throw error;
+    const providerStatus = error.status ?? error.code;
+    const providerMessage = String(error.message || "unknown provider error");
+    // Diagnostic log only: status + message. Never logs the API key or
+    // conversation content.
+    console.error(
+      `AI chat provider error (model=${AI_CHAT_MODEL} status=${providerStatus}):`,
+      providerMessage.slice(0, 300),
+    );
+    if (
+      providerStatus === 429 ||
+      /quota|rate.?limit|resource.?exhausted/i.test(providerMessage)
+    ) {
+      res.status(429);
+      throw new Error(
+        "AI service is busy right now. Please wait a moment and retry.",
+      );
+    }
+    if (
+      providerStatus === 400 ||
+      providerStatus === 401 ||
+      providerStatus === 403 ||
+      /api.?key|invalid.?argument|permission|not.?found/i.test(providerMessage)
+    ) {
+      res.status(503);
+      throw new Error(
+        "AI service is misconfigured and cannot answer right now. An administrator needs to check the server configuration.",
+      );
+    }
+    res.status(503);
+    throw new Error("AI service is temporarily unavailable. Please retry.");
   }
+};
+
+const getMyPrescriptions = async (req, res) => {
+  const userId = req.user._id ?? req.user.id;
+
+  const prescriptions = await Prescription.find({ user: userId }).sort({
+    createdAt: -1,
+  });
+
+  return res.status(200).json(prescriptions ?? []);
 };
 
 const aiController = {
   explainPrescription,
+  getMyPrescriptions,
   findMedicines,
   chatWithAi,
 };

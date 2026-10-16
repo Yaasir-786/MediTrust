@@ -6,6 +6,11 @@ const router = express.Router();
 
 router.get("/", doctorController.getAllDoctors);
 router.get(
+  "/my-appointments",
+  protect.forUser,
+  doctorController.getMyAppointments,
+);
+router.get(
   "/appointments",
   protect.forUser,
   doctorController.getALlAppointments,
