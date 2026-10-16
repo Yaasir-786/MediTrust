@@ -6,13 +6,13 @@ const fetchData = async () => {
   const responseForPathologist = await axios.get("/api/pathologist");
   const responseForTests = await axios.get("/api/pathologist/tests");
 
-  const medicines = responseForMedicines.data.sort((a, b) => a.stock - b.stock);
+  const medicines = [...responseForMedicines.data].sort((a, b) => a.stock - b.stock);
   const doctors = responseForDoctors.data;
   const pathologist = responseForPathologist.data;
   const tests = responseForTests.data;
 
   return {
-    medicines: medicines.splice(4),
+    medicines,
     doctors: doctors,
     pathologist: pathologist,
     tests: tests,

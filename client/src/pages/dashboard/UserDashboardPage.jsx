@@ -46,7 +46,7 @@ const formatDate = (value) => {
 
 const formatMoney = (value) => {
   const n = Number(value ?? 0);
-  return `$${(Number.isFinite(n) ? n : 0).toFixed(2)}`;
+  return `₹${(Number.isFinite(n) ? n : 0).toFixed(2)}`;
 };
 
 const orderStatusMeta = (status) => {
@@ -624,9 +624,7 @@ export default function UserDashboardPage({ onNavigate }) {
             <Button
               variant="outline"
               size="sm"
-              onClick={() =>
-                go("/auth/ai-hub/prescription", "ai-prescription")
-              }
+              onClick={() => go("/auth/ai-hub/prescription", "ai-prescription")}
               icon={FileText}>
               Scan New Prescription with AI
             </Button>

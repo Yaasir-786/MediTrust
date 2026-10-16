@@ -22,7 +22,26 @@ import {
 import Sidebar from "../common/Sidebar";
 import { useLocation } from "react-router-dom";
 
-const AdminSidebar = () => {
+// Derives every sidebar badge from one admin data payload
+// (the same GET /api/admin/* responses each admin page already fetches).
+// Returns undefined when data is missing so no fake numbers render
+// while loading or after a failed request.
+export const buildAdminCounts = (data) => {
+  if (!data) return undefined;
+  const pendingDoctors = (data.doctors ?? []).filter((d) => !d.isVerified).length;
+  const pendingLabs = (data.pathologists ?? []).filter((p) => !p.isVerified).length;
+  return {
+    // Items awaiting admin review across the verification queues.
+    overview: pendingDoctors + pendingLabs,
+    products: (data.products ?? []).length,
+    doctorsPending: pendingDoctors,
+    labsReview: pendingLabs,
+    orders: (data.orders ?? []).length,
+    users: (data.users ?? []).length,
+  };
+};
+
+const AdminSidebar = ({ counts }) => {
   let { pathname } = useLocation();
   let currentPath = pathname.split("/")[pathname.split("/").length - 1];
 
@@ -31,29 +50,39 @@ const AdminSidebar = () => {
       id: "admin",
       label: "Admin Overview",
       icon: Package,
-      badge: "5",
+      badge: counts ? String(counts.overview) : undefined,
       to: "/auth/admin",
     },
     {
       id: "products",
       label: "Products & Inventory",
       icon: Package,
-      badge: "5",
+      badge: counts ? String(counts.products) : undefined,
     },
     {
       id: "doctors",
       label: "Doctors & Licensure",
       icon: Stethoscope,
-      badge: "1 Pending",
+      badge: counts ? `${counts.doctorsPending} Pending` : undefined,
     },
     {
       id: "pathologists",
       label: "Pathology Labs",
       icon: FlaskConical,
-      badge: "1 Review",
+      badge: counts ? `${counts.labsReview} Review` : undefined,
     },
-    { id: "orders", label: "Medicine Orders", icon: ShoppingBag, badge: "4" },
-    { id: "users", label: "Registered Users", icon: Users, badge: "12k" },
+    {
+      id: "orders",
+      label: "Medicine Orders",
+      icon: ShoppingBag,
+      badge: counts ? String(counts.orders) : undefined,
+    },
+    {
+      id: "users",
+      label: "Registered Users",
+      icon: Users,
+      badge: counts ? String(counts.users) : undefined,
+    },
   ];
   return (
     <Sidebar

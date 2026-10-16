@@ -22,6 +22,7 @@ import Card from "../components/common/Card";
 import Badge from "../components/common/Badge";
 import Button from "../components/common/Button";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
 import medicalService from "../services/medicalService";
 import LoaderScreen from "../components/common/Loader";
 
@@ -113,6 +114,19 @@ const MOCK_TESTIMONIALS = [
 ];
 
 export default function LandingPage({ onNavigate }) {
+  const navigate = useNavigate();
+
+  const go = (route, legacyId) => {
+    if (typeof onNavigate === "function" && legacyId) {
+      try {
+        onNavigate(legacyId);
+      } catch {
+        // ignore legacy demo navigator errors
+      }
+    }
+    navigate(route);
+  };
+
   // Queries
   const { data, isLoading, isSuccess, isError, error } = useQuery({
     queryKey: ["items"],
@@ -332,10 +346,18 @@ export default function LandingPage({ onNavigate }) {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {MOCK_CATEGORIES.map((cat) => {
             const Icon = cat.icon;
+            const cardRoute =
+              cat.id === "pharmacy"
+                ? "/pharmacy"
+                : cat.id === "doctors"
+                  ? "/doctors"
+                  : cat.id === "lab"
+                    ? "/lab"
+                    : "/auth/ai-hub/prescription";
             return (
               <div
                 key={cat.id}
-                onClick={() => onNavigate(cat.id)}
+                onClick={() => go(cardRoute, cat.id)}
                 className="group relative bg-white rounded-2xl p-6 border border-slate-200/80 shadow-xs hover:shadow-xl hover:-translate-y-1.5 hover:border-teal-400 transition-all duration-300 cursor-pointer flex flex-col justify-between">
                 <div>
                   <div className="flex items-center justify-between mb-4">
@@ -387,7 +409,7 @@ export default function LandingPage({ onNavigate }) {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => onNavigate("doctors")}
+            onClick={() => navigate("/doctors")}
             icon={ArrowRight}
             iconPosition="right">
             View All Doctors
@@ -463,7 +485,7 @@ export default function LandingPage({ onNavigate }) {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => onNavigate("pharmacy")}
+              onClick={() => navigate("/pharmacy")}
               icon={ArrowRight}
               iconPosition="right">
               Browse Pharmacy
@@ -471,7 +493,7 @@ export default function LandingPage({ onNavigate }) {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {data.medicines.map((med) => (
+            {data.medicines.slice(0, 4).map((med) => (
               <Card
                 key={med._id}
                 hoverEffect

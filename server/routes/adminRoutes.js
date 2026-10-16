@@ -24,6 +24,7 @@ router.put(
   upload.single("image"),
   adminService.updateProduct,
 );
+router.delete("/product/:pid", protect.forAdmin, adminService.deleteProduct);
 router.put(
   "/pathologists/:pid",
   protect.forAdmin,

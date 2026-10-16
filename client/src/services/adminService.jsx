@@ -36,6 +36,39 @@ const fetchAdminData = async (payload) => {
   return data;
 };
 
-const adminService = { fetchAdminData };
+const authHeaders = (token) => {
+  if (!token) {
+    throw new Error("No auth token found. Please login as Admin.");
+  }
+  return { headers: { authorization: `Bearer ${token}` } };
+};
+
+const addProduct = async ({ token, formData }) => {
+  const response = await axios.post(
+    "/api/admin/product",
+    formData,
+    authHeaders(token),
+  );
+  return response.data;
+};
+
+const updateProduct = async ({ token, productId, formData }) => {
+  const response = await axios.put(
+    `/api/admin/product/${productId}`,
+    formData,
+    authHeaders(token),
+  );
+  return response.data;
+};
+
+const deleteProduct = async ({ token, productId }) => {
+  const response = await axios.delete(
+    `/api/admin/product/${productId}`,
+    authHeaders(token),
+  );
+  return response.data;
+};
+
+const adminService = { fetchAdminData, addProduct, updateProduct, deleteProduct };
 
 export default adminService;

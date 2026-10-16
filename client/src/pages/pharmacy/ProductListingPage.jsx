@@ -37,6 +37,8 @@ const MOCK_CATEGORIES = [
 
 export default function ProductListingPage({ onNavigate }) {
   const [selectedCategory, setSelectedCategory] = useState("All Products");
+  const [searchText, setSearchText] = useState("");
+  const [sortOrder, setSortOrder] = useState("Popularity");
 
   // Queries
   const { data, isLoading, isSuccess, isError, error } = useQuery({
@@ -57,6 +59,23 @@ export default function ProductListingPage({ onNavigate }) {
       </div>
     );
   }
+
+  const allMedicines = data?.medicines ?? [];
+  const visibleMedicines = allMedicines
+    .filter(
+      (prod) =>
+        !searchText.trim() ||
+        `${prod.name ?? ""} ${prod.description ?? ""}`
+          .toLowerCase()
+          .includes(searchText.trim().toLowerCase()),
+    )
+    .sort((a, b) => {
+      if (sortOrder === "Price: Low to High")
+        return Number(a.price ?? 0) - Number(b.price ?? 0);
+      if (sortOrder === "Price: High to Low")
+        return Number(b.price ?? 0) - Number(a.price ?? 0);
+      return 0;
+    });
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
@@ -89,6 +108,8 @@ export default function ProductListingPage({ onNavigate }) {
           <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
           <input
             type="text"
+            value={searchText}
+            onChange={(e) => setSearchText(e.target.value)}
             placeholder="Search medicine brand or generic salt..."
             className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 text-sm placeholder-slate-400 focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500"
           />
@@ -98,11 +119,13 @@ export default function ProductListingPage({ onNavigate }) {
         <div className="flex items-center gap-3 w-full md:w-auto justify-between md:justify-end">
           <div className="flex items-center gap-2 text-xs font-medium text-slate-600">
             <span>Sort by:</span>
-            <select className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 focus:outline-none">
+            <select
+              value={sortOrder}
+              onChange={(e) => setSortOrder(e.target.value)}
+              className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 focus:outline-none">
               <option>Popularity</option>
               <option>Price: Low to High</option>
               <option>Price: High to Low</option>
-              <option>Highest Rated</option>
             </select>
           </div>
 
@@ -143,9 +166,9 @@ export default function ProductListingPage({ onNavigate }) {
           <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
             Showing{" "}
             <span className="text-slate-900 font-bold">
-              {data.medicines.length}
+              {visibleMedicines.length}
             </span>{" "}
-            Verified Medicines
+            of {allMedicines.length} Verified Medicines
           </p>
           <span className="text-xs text-teal-700 font-semibold flex items-center gap-1">
             <Zap className="w-3.5 h-3.5 fill-teal-600 text-teal-600" />
@@ -154,7 +177,7 @@ export default function ProductListingPage({ onNavigate }) {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-          {data.medicines.map((prod) => (
+          {visibleMedicines.map((prod) => (
             <Card
               key={prod._id}
               hoverEffect
@@ -213,25 +236,8 @@ export default function ProductListingPage({ onNavigate }) {
       {/* Pagination / Load More UI */}
       <div className="pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-slate-200">
         <p className="text-xs text-slate-500">
-          Showing 1 to 8 of 148 medicines
+          Showing all {visibleMedicines.length} of {allMedicines.length} medicines
         </p>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" disabled>
-            Previous
-          </Button>
-          <span className="px-3 py-1 bg-teal-600 text-white rounded-lg text-xs font-bold">
-            1
-          </span>
-          <span className="px-3 py-1 hover:bg-slate-100 text-slate-700 rounded-lg text-xs font-medium cursor-pointer">
-            2
-          </span>
-          <span className="px-3 py-1 hover:bg-slate-100 text-slate-700 rounded-lg text-xs font-medium cursor-pointer">
-            3
-          </span>
-          <Button variant="outline" size="sm">
-            Next
-          </Button>
-        </div>
       </div>
     </div>
   );

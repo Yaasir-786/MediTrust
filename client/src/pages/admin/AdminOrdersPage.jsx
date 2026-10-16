@@ -30,7 +30,7 @@ import adminService from "../../services/adminService";
 import { useSelector } from "react-redux";
 import toast from "react-hot-toast";
 import LoaderScreen from "../../components/common/Loader";
-import AdminSidebar from "../../components/admin/AdminSidebar";
+import AdminSidebar, { buildAdminCounts } from "../../components/admin/AdminSidebar";
 import { useLocation } from "react-router-dom";
 
 export default function AdminOrdersPage({ onNavigate }) {
@@ -62,7 +62,7 @@ export default function AdminOrdersPage({ onNavigate }) {
   return (
     <div className="min-h-screen bg-slate-50 flex">
       {/* Sidebar Navigation */}
-      <AdminSidebar />
+      <AdminSidebar counts={buildAdminCounts(data)} />
 
       {/* Main Admin Area */}
       <main className="flex-1 p-6 sm:p-10 space-y-8 overflow-x-hidden">
