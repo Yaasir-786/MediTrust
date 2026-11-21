@@ -25,7 +25,7 @@ import { register } from "../../features/auth/authSlice";
 // Later replace with: api.auth.login({ email, password })
 // ==========================================
 
-export default function LoginPage({ onNavigate }) {
+export default function LoginPage() {
   const { mutate, data, isPending, isError, isSuccess, error } = useMutation({
     mutationFn: (payload) => authService.loginUser(payload),
   });
@@ -84,7 +84,7 @@ export default function LoginPage({ onNavigate }) {
         {/* Brand header */}
         <div className="text-center space-y-2">
           <div
-            onClick={() => onNavigate("landing")}
+            onClick={() => navigate("/")}
             className="inline-flex items-center gap-2 cursor-pointer group">
             <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-teal-600 to-teal-400 flex items-center justify-center text-white shadow-md shadow-teal-500/20 group-hover:scale-105 transition-transform">
               <HeartPulse className="w-7 h-7" />

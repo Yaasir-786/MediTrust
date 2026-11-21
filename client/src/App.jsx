@@ -25,10 +25,12 @@ import DoctorListingPage from "./pages/doctors/DoctorListingPage";
 import DoctorBookingPage from "./pages/doctors/DoctorBookingPage";
 import MyAppointmentsPage from "./pages/doctors/MyAppointmentsPage";
 import DoctorApplicationPage from "./pages/doctors/DoctorApplicationPage";
+import DoctorPanelPage from "./pages/doctors/DoctorPanelPage";
 import LabTestListingPage from "./pages/lab/LabTestListingPage";
 import BookLabTestPage from "./pages/lab/BookLabTestPage";
 import MyLabAppointmentsPage from "./pages/lab/MyLabAppointmentsPage";
 import PathologistApplicationPage from "./pages/lab/PathologistApplicationPage";
+import PathologistPanelPage from "./pages/lab/PathologistPanelPage";
 import AiHubPage from "./pages/ai/AiHubPage";
 import AiChatPage from "./pages/ai/AiChatPage";
 import PrescriptionExplainerPage from "./pages/ai/PrescriptionExplainerPage";
@@ -58,14 +60,27 @@ export default function App() {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/pharmacy" element={<ProductListingPage />} />
+          <Route path="/pharmacy/:pid" element={<ProductDetailPage />} />
           <Route path="/doctors" element={<DoctorListingPage />} />
+          <Route path="/doctors/:did" element={<DoctorBookingPage />} />
           <Route path="/lab" element={<LabTestListingPage />} />
+          <Route path="/lab/:tid" element={<BookLabTestPage />} />
           <Route path="/auth" element={<PrivateComponent />}>
             <Route path="orders" element={<MyOrdersPage />} />
             <Route path="my-appointments" element={<MyAppointmentsPage />} />
             <Route
               path="my-lab-appointments"
               element={<MyLabAppointmentsPage />}
+            />
+            <Route path="doctor-apply" element={<DoctorApplicationPage />} />
+            <Route
+              path="pathologist-apply"
+              element={<PathologistApplicationPage />}
+            />
+            <Route path="doctor-panel" element={<DoctorPanelPage />} />
+            <Route
+              path="pathologist-panel"
+              element={<PathologistPanelPage />}
             />
             <Route path="ai-hub" element={<AiHubPage />} />
             <Route path="ai-hub/chat" element={<AiChatPage />} />

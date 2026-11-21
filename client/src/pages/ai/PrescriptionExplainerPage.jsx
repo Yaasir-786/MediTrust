@@ -9,7 +9,10 @@ import {
   Pill,
   X,
   RefreshCw,
-  ImagePlus
+  ImagePlus,
+  CheckCircle2,
+  XCircle,
+  Search
 } from 'lucide-react';
 import { useSelector, useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
@@ -26,7 +29,7 @@ const MAX_SIZE_BYTES = MAX_SIZE_MB * 1024 * 1024;
 const isUnclear = (value) =>
   value === null || value === undefined || String(value).trim() === '';
 
-export default function PrescriptionExplainerPage({ onNavigate }) {
+export default function PrescriptionExplainerPage() {
   const { user } = useSelector((state) => state.auth);
   const dispatch = useDispatch();
   const navigate = useNavigate();
@@ -38,17 +41,9 @@ export default function PrescriptionExplainerPage({ onNavigate }) {
   const [isScanning, setIsScanning] = useState(false);
   const [scanError, setScanError] = useState('');
   const [result, setResult] = useState(null);
-
-  const go = (route, legacyId) => {
-    if (typeof onNavigate === 'function' && legacyId) {
-      try {
-        onNavigate(legacyId);
-      } catch {
-        // ignore legacy demo navigator errors
-      }
-    }
-    navigate(route);
-  };
+  const [availability, setAvailability] = useState(null);
+  const [isCheckingAvailability, setIsCheckingAvailability] = useState(false);
+  const [availabilityError, setAvailabilityError] = useState('');
 
   useEffect(() => {
     return () => {
@@ -76,6 +71,8 @@ export default function PrescriptionExplainerPage({ onNavigate }) {
     setPreviewUrl(URL.createObjectURL(candidate));
     setScanError('');
     setResult(null);
+    setAvailability(null);
+    setAvailabilityError('');
   };
 
   const handleRemoveFile = () => {
@@ -85,6 +82,8 @@ export default function PrescriptionExplainerPage({ onNavigate }) {
     setValidationError('');
     setScanError('');
     setResult(null);
+    setAvailability(null);
+    setAvailabilityError('');
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
@@ -96,6 +95,8 @@ export default function PrescriptionExplainerPage({ onNavigate }) {
     }
     setIsScanning(true);
     setScanError('');
+    setAvailability(null);
+    setAvailabilityError('');
     try {
       const prescription = await aiService.scanPrescription({
         file,
@@ -120,6 +121,44 @@ export default function PrescriptionExplainerPage({ onNavigate }) {
     } finally {
       setIsScanning(false);
     }
+  };
+
+  const handleCheckAvailability = async () => {
+    if (!result?._id) return;
+    setIsCheckingAvailability(true);
+    setAvailabilityError('');
+    try {
+      const data = await aiService.findMedicines({
+        prescriptionId: result._id,
+        token: user?.token,
+      });
+      setAvailability(data);
+    } catch (err) {
+      if (err?.response?.status === 401) {
+        localStorage.removeItem('user');
+        dispatch(logoutUser());
+        navigate('/login');
+        return;
+      }
+      setAvailability(null);
+      setAvailabilityError(
+        err?.response?.data?.error ||
+          err?.response?.data?.details ||
+          err?.response?.data?.message ||
+          err?.message ||
+          'Could not check medicine availability.',
+      );
+    } finally {
+      setIsCheckingAvailability(false);
+    }
+  };
+
+  const productIdFor = (name) => {
+    if (!name) return null;
+    const match = (availability?.products ?? []).find(
+      (product) => product?.name === name,
+    );
+    return match?._id ?? null;
   };
 
   return (
@@ -306,7 +345,7 @@ export default function PrescriptionExplainerPage({ onNavigate }) {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => go('/pharmacy', 'pharmacy')}
+              onClick={() => navigate('/pharmacy')}
               icon={Pill}
             >
               Order Medicines via Pharmacy
@@ -391,6 +430,199 @@ export default function PrescriptionExplainerPage({ onNavigate }) {
               </Card>
             ))}
           </div>
+
+          {/* Live pharmacy & lab availability check */}
+          <Card className="p-6 border-indigo-200/80 bg-indigo-50/20 space-y-5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                  <Search className="w-4 h-4 text-indigo-600" />
+                  Pharmacy Availability
+                </h3>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Match these medicines against live pharmacy stock and find labs for any diagnostic tests.
+                </p>
+              </div>
+              <Button
+                variant="ai"
+                size="sm"
+                onClick={handleCheckAvailability}
+                disabled={isCheckingAvailability || !result?._id}
+                icon={Search}
+              >
+                {isCheckingAvailability
+                  ? 'Checking…'
+                  : availability
+                    ? 'Re-check Availability'
+                    : 'Check Availability'}
+              </Button>
+            </div>
+
+            {availabilityError && (
+              <div className="rounded-xl bg-rose-50 border border-rose-200 p-3 text-xs text-rose-700">
+                {availabilityError}
+              </div>
+            )}
+
+            {availability && (
+              <div className="space-y-4">
+                {availability.summary && (
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    {[
+                      {
+                        label: 'Prescribed',
+                        value: availability.summary.total_medicines_prescribed,
+                      },
+                      {
+                        label: 'Available',
+                        value: availability.summary.medicines_available,
+                      },
+                      {
+                        label: 'Unavailable',
+                        value: availability.summary.medicines_unavailable,
+                      },
+                      {
+                        label: 'Tests',
+                        value: availability.summary.tests_prescribed,
+                      },
+                    ].map((stat) => (
+                      <div
+                        key={stat.label}
+                        className="rounded-xl bg-white border border-slate-200 p-3 text-center">
+                        <span className="block text-lg font-black text-slate-900">
+                          {stat.value ?? 0}
+                        </span>
+                        <span className="text-[11px] text-slate-500">
+                          {stat.label}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {(availability.medicines ?? []).length > 0 && (
+                  <div className="space-y-2">
+                    {(availability.medicines ?? []).map((med, index) => {
+                      const productId = productIdFor(med.matched_product_name);
+                      return (
+                        <div
+                          key={`${med.prescribed_name}-${index}`}
+                          className="rounded-xl bg-white border border-slate-200 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                          <div>
+                            <div className="flex flex-wrap items-center gap-2">
+                              {med.available ? (
+                                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                              ) : (
+                                <XCircle className="w-4 h-4 text-rose-500 shrink-0" />
+                              )}
+                              <span className="text-sm font-bold text-slate-900">
+                                {med.prescribed_name}
+                              </span>
+                              <Badge
+                                variant={med.available ? 'success' : 'danger'}
+                                size="sm">
+                                {med.available ? 'Available' : 'Unavailable'}
+                              </Badge>
+                              {med.match_confidence && (
+                                <Badge variant="neutral" size="sm">
+                                  {String(med.match_confidence).toUpperCase()} MATCH
+                                </Badge>
+                              )}
+                            </div>
+                            <p className="text-xs text-slate-500 mt-1">
+                              {med.reason}
+                            </p>
+                            {med.matched_product_name &&
+                              med.matched_product_name !==
+                                med.prescribed_name && (
+                                <p className="text-[11px] text-slate-400 mt-0.5">
+                                  Matched: {med.matched_product_name}
+                                </p>
+                              )}
+                          </div>
+
+                          <div className="flex items-center gap-3 text-xs shrink-0">
+                            {med.price != null && (
+                              <span className="font-bold text-slate-900">
+                                ₹{Number(med.price).toFixed(2)}
+                              </span>
+                            )}
+                            {med.stock != null && (
+                              <span className="text-slate-500">
+                                Stock: {med.stock}
+                              </span>
+                            )}
+                            {productId && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => navigate(`/pharmacy/${productId}`)}>
+                                View
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {(availability.tests ?? []).length > 0 && (
+                  <div className="space-y-3">
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                      Diagnostic Tests
+                    </h4>
+                    {availability.tests.map((test, index) => (
+                      <div
+                        key={`${test.prescribed_test}-${index}`}
+                        className="rounded-xl bg-white border border-slate-200 p-4 space-y-2">
+                        <span className="text-sm font-bold text-slate-900">
+                          {test.prescribed_test}
+                        </span>
+                        {(test.available_labs ?? []).length === 0 ? (
+                          <p className="text-xs text-slate-500">
+                            No laboratory offering this test was found.
+                          </p>
+                        ) : (
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            {test.available_labs.map((lab, labIndex) => (
+                              <div
+                                key={`${lab.laboratoryName}-${labIndex}`}
+                                className="rounded-lg bg-slate-50 border border-slate-200 p-3 text-xs">
+                                <span className="font-bold text-slate-800 block">
+                                  {lab.laboratoryName}
+                                </span>
+                                <span className="text-slate-500 block">
+                                  {lab.laboratoryAddress}
+                                </span>
+                                <span className="text-slate-600 block mt-1">
+                                  Fee: ₹
+                                  {Number(
+                                    lab.consultationFee ?? 0,
+                                  ).toFixed(2)}
+                                </span>
+                                {(lab.availableDays ?? []).length > 0 && (
+                                  <span className="text-slate-500 block">
+                                    {lab.availableDays.join(', ')}
+                                  </span>
+                                )}
+                                {lab.workingHours?.start && (
+                                  <span className="text-slate-500 block">
+                                    {lab.workingHours.start} -{' '}
+                                    {lab.workingHours.end}
+                                  </span>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </Card>
 
           <div className="rounded-xl bg-slate-100 p-4 text-xs text-slate-500 text-center">
             MediTrust AI extraction is an assistive readout. Always double-check dosage instructions with the packaging label and your pharmacist.

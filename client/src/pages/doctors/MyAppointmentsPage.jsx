@@ -1,99 +1,193 @@
-import React, { useState } from 'react';
-import { 
-  Calendar, 
-  Clock, 
-  Video, 
-  MapPin, 
-  FileText, 
-  RotateCw, 
-  XCircle, 
-  ShieldCheck, 
-  ArrowRight,
-  UserCheck
-} from 'lucide-react';
-import Card from '../../components/common/Card';
-import Badge from '../../components/common/Badge';
-import Button from '../../components/common/Button';
+import React, { useEffect, useState } from "react";
+import {
+  Calendar,
+  Clock,
+  MapPin,
+  XCircle,
+  RotateCw,
+  Building2,
+  Stethoscope,
+} from "lucide-react";
+import { useSelector, useDispatch } from "react-redux";
+import { useNavigate } from "react-router-dom";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import Card from "../../components/common/Card";
+import Badge from "../../components/common/Badge";
+import Button from "../../components/common/Button";
+import LoaderScreen from "../../components/common/Loader";
+import doctorService from "../../services/doctorService";
+import { logoutUser } from "../../features/auth/authSlice";
+import toast from "react-hot-toast";
 
-// ==========================================
-// MOCK DATA (Hardcoded for teaching purposes)
-// Later replace with: api.appointments.getPatientAppointments()
-// ==========================================
+const TABS = ["All Appointments", "Upcoming", "Cancelled"];
 
-const MOCK_APPOINTMENTS = [
-  {
-    id: 'APT-1082',
-    doctorName: 'Dr. Sarah Jenkins, MD',
-    specialty: 'Cardiologist',
-    hospital: 'Mount Sinai Heart Center',
-    date: 'Today, Sep 23, 2026',
-    time: '03:30 PM - 04:00 PM',
-    status: 'Upcoming',
-    statusVariant: 'info',
-    mode: 'Video Call',
-    meetingLinkAvailable: true,
-    doctorImage: 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&q=80&w=200',
-    fee: '$95.00',
-  },
-  {
-    id: 'APT-1049',
-    doctorName: 'Dr. Marcus Vance, DO',
-    specialty: 'Dermatologist',
-    hospital: 'Boston Skin & Laser Pavilion',
-    date: 'Sep 10, 2026',
-    time: '11:00 AM - 11:30 AM',
-    status: 'Completed',
-    statusVariant: 'success',
-    mode: 'In-Clinic',
-    meetingLinkAvailable: false,
-    doctorImage: 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?auto=format&fit=crop&q=80&w=200',
-    fee: '$85.00',
-    prescriptionAvailable: true,
-  },
-  {
-    id: 'APT-0994',
-    doctorName: 'Dr. Elena Rostova, MD',
-    specialty: 'Pediatrics',
-    hospital: "Children's Health Pavilion",
-    date: 'Aug 18, 2026',
-    time: '04:00 PM - 04:30 PM',
-    status: 'Completed',
-    statusVariant: 'success',
-    mode: 'Video Call',
-    meetingLinkAvailable: false,
-    doctorImage: 'https://images.unsplash.com/photo-1594824813576-9694c979d50a?auto=format&fit=crop&q=80&w=200',
-    fee: '$90.00',
-    prescriptionAvailable: true,
-  },
-  {
-    id: 'APT-0881',
-    doctorName: 'Dr. David Kim, MD',
-    specialty: 'Neurologist',
-    hospital: 'Metropolitan Brain Institute',
-    date: 'Jul 29, 2026',
-    time: '02:00 PM - 02:30 PM',
-    status: 'Cancelled',
-    statusVariant: 'danger',
-    mode: 'In-Clinic',
-    meetingLinkAvailable: false,
-    doctorImage: 'https://images.unsplash.com/photo-1537368910025-700350fe46c7?auto=format&fit=crop&q=80&w=200',
-    fee: '$110.00',
-  },
-];
+const STATUS_META = {
+  pending: { label: "Pending", variant: "warning" },
+  confirmed: { label: "Confirmed", variant: "info" },
+  cancelled: { label: "Cancelled", variant: "danger" },
+};
 
-const TABS = ['All Appointments', 'Upcoming', 'Completed', 'Cancelled'];
-
-export default function MyAppointmentsPage({ onNavigate }) {
-  const [activeTab, setActiveTab] = useState('All Appointments');
-
-  const filteredAppointments = MOCK_APPOINTMENTS.filter((apt) => {
-    if (activeTab === 'All Appointments') return true;
-    return apt.status.toLowerCase() === activeTab.toLowerCase();
+const formatDate = (value) => {
+  if (!value) return "—";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return "—";
+  return d.toLocaleDateString("en-IN", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
   });
+};
+
+const formatMoney = (value) => {
+  const n = Number(value ?? 0);
+  return `₹${(Number.isFinite(n) ? n : 0).toFixed(2)}`;
+};
+
+const specializationText = (value) => {
+  if (Array.isArray(value)) return value.filter(Boolean).join(", ");
+  return value ?? "—";
+};
+
+export default function MyAppointmentsPage() {
+  const { user } = useSelector((state) => state.auth);
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const [activeTab, setActiveTab] = useState("All Appointments");
+
+  const {
+    data: appointments = [],
+    isLoading,
+    isError,
+    error,
+    refetch,
+    isRefetching,
+  } = useQuery({
+    queryKey: ["my-doctor-appointments", user?.token],
+    queryFn: () => doctorService.getMyAppointments(user?.token),
+    enabled: !!user?.token,
+    retry: false,
+  });
+
+  const statusCode = error?.response?.status;
+  const isSessionExpired = statusCode === 401;
+
+  useEffect(() => {
+    if (isSessionExpired) {
+      localStorage.removeItem("user");
+      dispatch(logoutUser());
+      navigate("/login");
+    }
+  }, [isSessionExpired, dispatch, navigate]);
+
+  const cancelMutation = useMutation({
+    mutationFn: (appointmentId) =>
+      doctorService.updateAppointment({
+        token: user?.token,
+        appointmentId,
+        status: "cancelled",
+      }),
+    onSuccess: () => {
+      toast.success("Appointment cancelled.");
+      queryClient.invalidateQueries({
+        queryKey: ["my-doctor-appointments", user?.token],
+      });
+    },
+    onError: (err) => {
+      if (err?.response?.status === 401) {
+        localStorage.removeItem("user");
+        dispatch(logoutUser());
+        navigate("/login");
+        return;
+      }
+      toast.error(
+        err?.response?.data?.message ||
+          err?.message ||
+          "Could not cancel the appointment.",
+      );
+    },
+  });
+
+  const handleCancel = (appointmentId) => {
+    if (window.confirm("Cancel this appointment?")) {
+      cancelMutation.mutate(appointmentId);
+    }
+  };
+
+  const normalized = (appointments ?? []).map((apt) => {
+    const key = String(apt?.status ?? "pending").toLowerCase();
+    const meta = STATUS_META[key] ?? STATUS_META.pending;
+    const doctor = apt?.doctor ?? null;
+    return {
+      _id: apt?._id,
+      displayId: apt?._id
+        ? `APT-${String(apt._id).slice(-6).toUpperCase()}`
+        : "APT-—",
+      statusKey: key,
+      statusLabel: meta.label,
+      statusVariant: meta.variant,
+      bookedOn: formatDate(apt?.createdAt),
+      doctorName: doctor?.user?.name ?? "Doctor no longer available",
+      specialization: specializationText(doctor?.specialization),
+      clinicName: doctor?.clinicName ?? "—",
+      address: doctor?.address ?? "—",
+      fee: Number(doctor?.consultationFee ?? 0),
+    };
+  });
+
+  const displayedAppointments = normalized.filter((apt) => {
+    if (activeTab === "All Appointments") return true;
+    if (activeTab === "Upcoming")
+      return apt.statusKey === "pending" || apt.statusKey === "confirmed";
+    return apt.statusKey === activeTab.toLowerCase();
+  });
+
+  if (isLoading) {
+    return <LoaderScreen />;
+  }
+
+  if (isError && !isSessionExpired) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+        <div>
+          <Badge variant="info" size="sm" className="mb-1">
+            Clinical Care Timeline
+          </Badge>
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900">
+            My Doctor Appointments
+          </h1>
+        </div>
+        <Card className="p-12 text-center max-w-lg mx-auto border-dashed border-2 border-slate-200 space-y-4">
+          <div className="w-20 h-20 rounded-full bg-rose-50 text-rose-600 flex items-center justify-center mx-auto shadow-inner">
+            <Calendar className="w-10 h-10 stroke-1" />
+          </div>
+          <div className="space-y-1">
+            <h3 className="text-lg font-bold text-slate-800">
+              Could not load your appointments
+            </h3>
+            <p className="text-xs text-slate-500 max-w-sm mx-auto">
+              {error?.response?.data?.message ||
+                error?.message ||
+                "Something went wrong while fetching your appointments."}
+            </p>
+          </div>
+          <div className="pt-2">
+            <Button
+              variant="primary"
+              size="md"
+              onClick={() => refetch()}
+              icon={RotateCw}
+              disabled={isRefetching}>
+              {isRefetching ? "Retrying…" : "Retry"}
+            </Button>
+          </div>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-      
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -104,16 +198,16 @@ export default function MyAppointmentsPage({ onNavigate }) {
             My Doctor Appointments
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 mt-1">
-            View scheduled consultations, launch telehealth video rooms, and retrieve digital prescriptions.
+            View your scheduled consultations and track their confirmation
+            status.
           </p>
         </div>
 
         <Button
           variant="primary"
           size="sm"
-          onClick={() => onNavigate('doctors')}
-          icon={Calendar}
-        >
+          onClick={() => navigate("/doctors")}
+          icon={Calendar}>
           Book New Consultation
         </Button>
       </div>
@@ -129,10 +223,9 @@ export default function MyAppointmentsPage({ onNavigate }) {
               type="button"
               className={`px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all duration-200 ${
                 isActive
-                  ? 'bg-teal-600 text-white shadow-xs'
-                  : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
-              }`}
-            >
+                  ? "bg-teal-600 text-white shadow-xs"
+                  : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50"
+              }`}>
               {tab}
             </button>
           );
@@ -141,112 +234,113 @@ export default function MyAppointmentsPage({ onNavigate }) {
 
       {/* Appointments List */}
       <div className="space-y-4">
-        {filteredAppointments.length === 0 ? (
-          <Card className="p-12 text-center max-w-md mx-auto border-dashed border-2">
-            <Calendar className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-            <h3 className="text-base font-bold text-slate-800">No Appointments</h3>
-            <p className="text-xs text-slate-500 mt-1">You have no records in this appointment view.</p>
+        {displayedAppointments.length === 0 ? (
+          <Card className="p-12 text-center max-w-lg mx-auto border-dashed border-2 border-slate-200 space-y-4">
+            <div className="w-20 h-20 rounded-full bg-teal-50 text-teal-600 flex items-center justify-center mx-auto shadow-inner">
+              <Calendar className="w-10 h-10 stroke-1" />
+            </div>
+            <div className="space-y-1">
+              <h3 className="text-lg font-bold text-slate-800">
+                No Appointments
+              </h3>
+              <p className="text-xs text-slate-500 max-w-sm mx-auto">
+                {normalized.length === 0
+                  ? "You haven't booked a doctor consultation yet."
+                  : "No appointments match this filter. Try a different status."}
+              </p>
+            </div>
+            <div className="pt-2">
+              <Button
+                variant="primary"
+                size="md"
+                onClick={() => navigate("/doctors")}
+                icon={Calendar}>
+                Browse Doctors
+              </Button>
+            </div>
           </Card>
         ) : (
-          filteredAppointments.map((apt) => (
-            <Card key={apt.id} className="p-6 border-slate-200 shadow-xs space-y-5">
-              
+          displayedAppointments.map((apt) => (
+            <Card
+              key={apt._id}
+              className="p-6 border-slate-200 shadow-xs space-y-5">
               <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-                
                 {/* Doctor Info */}
                 <div className="flex items-start gap-4">
-                  <img
-                    src={apt.doctorImage}
-                    alt={apt.doctorName}
-                    className="w-16 h-16 rounded-2xl object-cover border border-slate-200 shrink-0"
-                  />
+                  <div className="w-16 h-16 rounded-2xl bg-slate-100 border border-slate-200 shrink-0 flex items-center justify-center">
+                    <Stethoscope className="w-7 h-7 text-slate-300" />
+                  </div>
                   <div>
                     <div className="flex items-center gap-2">
-                      <span className="text-xs text-slate-400 font-mono">{apt.id}</span>
+                      <span className="text-xs text-slate-400 font-mono">
+                        {apt.displayId}
+                      </span>
                       <Badge variant={apt.statusVariant} size="sm" dot>
-                        {apt.status}
-                      </Badge>
-                      <Badge variant={apt.mode === 'Video Call' ? 'purple' : 'neutral'} size="sm">
-                        {apt.mode}
+                        {apt.statusLabel}
                       </Badge>
                     </div>
 
-                    <h3 className="text-lg font-bold text-slate-900 mt-1">{apt.doctorName}</h3>
-                    <p className="text-xs font-semibold text-teal-700">{apt.specialty}</p>
-                    <p className="text-xs text-slate-500 mt-0.5">{apt.hospital}</p>
+                    <h3 className="text-lg font-bold text-slate-900 mt-1">
+                      {apt.doctorName}
+                    </h3>
+                    <p className="text-xs font-semibold text-teal-700">
+                      {apt.specialization}
+                    </p>
+                    <p className="text-xs text-slate-500 mt-0.5 flex items-center gap-1">
+                      <Building2 className="w-3.5 h-3.5 text-slate-400" />
+                      {apt.clinicName}
+                    </p>
                   </div>
                 </div>
 
-                {/* Date & Time Highlight Box */}
+                {/* Booked On */}
                 <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100 flex items-center gap-4">
                   <div className="w-10 h-10 rounded-xl bg-teal-500/10 text-teal-700 flex items-center justify-center shrink-0">
                     <Clock className="w-5 h-5" />
                   </div>
                   <div>
-                    <span className="text-xs font-bold text-slate-900 block">{apt.date}</span>
-                    <span className="text-xs text-slate-500">{apt.time}</span>
+                    <span className="text-xs text-slate-400 block">
+                      Booked on
+                    </span>
+                    <span className="text-xs font-bold text-slate-900 block">
+                      {apt.bookedOn}
+                    </span>
                   </div>
                 </div>
-
               </div>
 
-              {/* Action Buttons Row */}
+              {/* Address & Actions */}
               <div className="pt-4 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3">
-                <span className="text-xs font-semibold text-slate-500">
-                  Consultation Fee: <strong className="text-slate-800">{apt.fee}</strong>
-                </span>
-
-                <div className="flex flex-wrap items-center gap-2">
-                  {apt.meetingLinkAvailable && (
-                    <Button
-                      variant="primary"
-                      size="sm"
-                      icon={Video}
-                      className="shadow-sm shadow-teal-600/20"
-                    >
-                      Join Video Call Room
-                    </Button>
-                  )}
-
-                  {apt.prescriptionAvailable && (
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      icon={FileText}
-                      onClick={() => onNavigate('pharmacy')}
-                    >
-                      View & Order Prescribed Meds
-                    </Button>
-                  )}
-
-                  {apt.status === 'Upcoming' && (
-                    <>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        icon={RotateCw}
-                        onClick={() => onNavigate('doctor-booking')}
-                      >
-                        Reschedule
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-rose-600 hover:text-rose-700 hover:bg-rose-50"
-                        icon={XCircle}
-                      >
-                        Cancel
-                      </Button>
-                    </>
-                  )}
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-5 text-xs text-slate-500">
+                  <span className="flex items-center gap-1.5">
+                    <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                    {apt.address}
+                  </span>
+                  <span className="text-xs font-semibold text-slate-500">
+                    Consultation Fee:{" "}
+                    <strong className="text-slate-800">
+                      {formatMoney(apt.fee)}
+                    </strong>
+                  </span>
                 </div>
-              </div>
 
+                {(apt.statusKey === "pending" ||
+                  apt.statusKey === "confirmed") && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-rose-600 hover:text-rose-700 hover:bg-rose-50"
+                    icon={XCircle}
+                    onClick={() => handleCancel(apt._id)}
+                    disabled={cancelMutation.isPending}>
+                    Cancel
+                  </Button>
+                )}
+              </div>
             </Card>
           ))
         )}
       </div>
-
     </div>
   );
 }

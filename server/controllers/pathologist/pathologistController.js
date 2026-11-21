@@ -114,7 +114,9 @@ const getALlAppointments = async (req, res) => {
 
   const appointments = await PathologyAppointment.find({
     pathologist: pathologist._id,
-  });
+  })
+    .populate("user")
+    .populate("pathologyTest");
 
   if (!appointments) {
     res.status(404);

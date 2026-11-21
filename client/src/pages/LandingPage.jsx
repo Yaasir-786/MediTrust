@@ -113,19 +113,8 @@ const MOCK_TESTIMONIALS = [
   },
 ];
 
-export default function LandingPage({ onNavigate }) {
+export default function LandingPage() {
   const navigate = useNavigate();
-
-  const go = (route, legacyId) => {
-    if (typeof onNavigate === "function" && legacyId) {
-      try {
-        onNavigate(legacyId);
-      } catch {
-        // ignore legacy demo navigator errors
-      }
-    }
-    navigate(route);
-  };
 
   // Queries
   const { data, isLoading, isSuccess, isError, error } = useQuery({
@@ -193,7 +182,7 @@ export default function LandingPage({ onNavigate }) {
                       variant="primary"
                       size="md"
                       className="w-full mr-6 sm:w-auto shrink-0 shadow-sm"
-                      onClick={() => onNavigate("pharmacy")}>
+                      onClick={() => navigate("/pharmacy")}>
                       Find Care
                     </Button>
                   </div>
@@ -203,19 +192,19 @@ export default function LandingPage({ onNavigate }) {
                 <div className="pt-2 px-3 border-t border-slate-100 mt-2 flex flex-wrap items-center gap-1.5 text-xs text-slate-500">
                   <span className="font-semibold text-slate-600">Popular:</span>
                   <button
-                    onClick={() => onNavigate("doctors")}
+                    onClick={() => navigate("/doctors")}
                     className="px-2 py-0.5 rounded-md hover:bg-slate-100 text-teal-700 hover:text-teal-800 transition-colors">
                     Cardiologist
                   </button>
                   <span>•</span>
                   <button
-                    onClick={() => onNavigate("pharmacy")}
+                    onClick={() => navigate("/pharmacy")}
                     className="px-2 py-0.5 rounded-md hover:bg-slate-100 text-teal-700 hover:text-teal-800 transition-colors">
                     Amoxicillin
                   </button>
                   <span>•</span>
                   <button
-                    onClick={() => onNavigate("lab")}
+                    onClick={() => navigate("/lab")}
                     className="px-2 py-0.5 rounded-md hover:bg-slate-100 text-teal-700 hover:text-teal-800 transition-colors">
                     Full Body Checkup
                   </button>
@@ -357,7 +346,7 @@ export default function LandingPage({ onNavigate }) {
             return (
               <div
                 key={cat.id}
-                onClick={() => go(cardRoute, cat.id)}
+                onClick={() => navigate(cardRoute)}
                 className="group relative bg-white rounded-2xl p-6 border border-slate-200/80 shadow-xs hover:shadow-xl hover:-translate-y-1.5 hover:border-teal-400 transition-all duration-300 cursor-pointer flex flex-col justify-between">
                 <div>
                   <div className="flex items-center justify-between mb-4">
@@ -456,7 +445,7 @@ export default function LandingPage({ onNavigate }) {
                 <Button
                   variant="primary"
                   size="sm"
-                  onClick={() => onNavigate("doctor-booking")}
+                  onClick={() => navigate(`/doctors/${doctor._id}`)}
                   className="w-auto">
                   Book Visit
                 </Button>
@@ -524,7 +513,7 @@ export default function LandingPage({ onNavigate }) {
                   <Button
                     variant="primary"
                     size="sm"
-                    onClick={() => onNavigate("product-detail")}>
+                    onClick={() => navigate(`/pharmacy/${med._id}`)}>
                     Order Now
                   </Button>
                 </div>
@@ -558,7 +547,7 @@ export default function LandingPage({ onNavigate }) {
                 <Button
                   variant="ai"
                   size="md"
-                  onClick={() => onNavigate("ai-prescription")}
+                  onClick={() => navigate("/auth/ai-hub/prescription")}
                   icon={Sparkles}>
                   Explain My Prescription
                 </Button>
@@ -566,7 +555,7 @@ export default function LandingPage({ onNavigate }) {
                   variant="outline"
                   size="md"
                   className="bg-white/10 hover:bg-white/20 text-white border-white/20"
-                  onClick={() => onNavigate("ai-chat")}>
+                  onClick={() => navigate("/auth/ai-hub/chat")}>
                   Chat With AI
                 </Button>
               </div>

@@ -32,6 +32,18 @@ const scanPrescription = async ({ file, token }) => {
   return response.data;
 };
 
-const aiService = { sendChatMessage, scanPrescription };
+const findMedicines = async ({ prescriptionId, token }) => {
+  if (!token) {
+    throw new Error("No auth token found. Please login again.");
+  }
+
+  const response = await axios.get(`/api/ai/find/${prescriptionId}`, {
+    headers: { authorization: `Bearer ${token}` },
+  });
+
+  return response.data;
+};
+
+const aiService = { sendChatMessage, scanPrescription, findMedicines };
 
 export default aiService;

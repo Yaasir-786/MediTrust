@@ -11,8 +11,11 @@ import {
   Heart
 } from 'lucide-react';
 import Button from '../common/Button';
+import { useNavigate } from 'react-router-dom';
 
-export default function Footer({ onNavigate }) {
+export default function Footer() {
+  const navigate = useNavigate();
+
   return (
     <footer className="bg-slate-900 text-slate-300 pt-16 pb-12 border-t border-slate-800">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -97,32 +100,32 @@ export default function Footer({ onNavigate }) {
             <h4 className="text-xs font-bold text-white uppercase tracking-wider mb-4">Clinical Services</h4>
             <ul className="space-y-2.5 text-sm text-slate-400">
               <li>
-                <button type="button" onClick={() => onNavigate('doctors')} className="hover:text-teal-300 transition-colors">
+                <button type="button" onClick={() => navigate('/doctors')} className="hover:text-teal-300 transition-colors">
                   Find Doctors
                 </button>
               </li>
               <li>
-                <button type="button" onClick={() => onNavigate('pharmacy')} className="hover:text-teal-300 transition-colors">
+                <button type="button" onClick={() => navigate('/pharmacy')} className="hover:text-teal-300 transition-colors">
                   Online Pharmacy
                 </button>
               </li>
               <li>
-                <button type="button" onClick={() => onNavigate('lab')} className="hover:text-teal-300 transition-colors">
+                <button type="button" onClick={() => navigate('/lab')} className="hover:text-teal-300 transition-colors">
                   Diagnostic Lab Tests
                 </button>
               </li>
               <li>
-                <button type="button" onClick={() => onNavigate('ai-hub')} className="hover:text-indigo-300 transition-colors">
+                <button type="button" onClick={() => navigate('/auth/ai-hub')} className="hover:text-indigo-300 transition-colors">
                   AI Symptom Triage
                 </button>
               </li>
               <li>
-                <button type="button" onClick={() => onNavigate('doctor-apply')} className="hover:text-teal-300 transition-colors">
+                <button type="button" onClick={() => navigate('/auth/doctor-apply')} className="hover:text-teal-300 transition-colors">
                   Join as Doctor
                 </button>
               </li>
               <li>
-                <button type="button" onClick={() => onNavigate('pathologist-apply')} className="hover:text-teal-300 transition-colors">
+                <button type="button" onClick={() => navigate('/auth/pathologist-apply')} className="hover:text-teal-300 transition-colors">
                   Join as Pathologist
                 </button>
               </li>
@@ -134,27 +137,27 @@ export default function Footer({ onNavigate }) {
             <h4 className="text-xs font-bold text-white uppercase tracking-wider mb-4">Patient Portal</h4>
             <ul className="space-y-2.5 text-sm text-slate-400">
               <li>
-                <button type="button" onClick={() => onNavigate('dashboard')} className="hover:text-teal-300 transition-colors">
+                <button type="button" onClick={() => navigate('/auth/dashboard')} className="hover:text-teal-300 transition-colors">
                   Patient Dashboard
                 </button>
               </li>
               <li>
-                <button type="button" onClick={() => onNavigate('orders')} className="hover:text-teal-300 transition-colors">
+                <button type="button" onClick={() => navigate('/auth/orders')} className="hover:text-teal-300 transition-colors">
                   Track Medicine Orders
                 </button>
               </li>
               <li>
-                <button type="button" onClick={() => onNavigate('my-appointments')} className="hover:text-teal-300 transition-colors">
+                <button type="button" onClick={() => navigate('/auth/my-appointments')} className="hover:text-teal-300 transition-colors">
                   Doctor Appointments
                 </button>
               </li>
               <li>
-                <button type="button" onClick={() => onNavigate('my-lab-appointments')} className="hover:text-teal-300 transition-colors">
+                <button type="button" onClick={() => navigate('/auth/my-lab-appointments')} className="hover:text-teal-300 transition-colors">
                   Lab Test Reports
                 </button>
               </li>
               <li>
-                <button type="button" onClick={() => onNavigate('admin')} className="hover:text-teal-300 transition-colors">
+                <button type="button" onClick={() => navigate('/auth/admin')} className="hover:text-teal-300 transition-colors">
                   Hospital Admin Portal
                 </button>
               </li>

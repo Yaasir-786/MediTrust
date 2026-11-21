@@ -1,21 +1,10 @@
 import React, { useState } from "react";
-import {
-  Search,
-  MapPin,
-  Star,
-  ShieldCheck,
-  Calendar,
-  Clock,
-  Video,
-  Building2,
-  Award,
-  SlidersHorizontal,
-  ArrowRight,
-} from "lucide-react";
+import { Search, MapPin, Calendar, Clock, Building2 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import Card from "../../components/common/Card";
 import Badge from "../../components/common/Badge";
 import Button from "../../components/common/Button";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import medicalService from "../../services/medicalService";
 import LoaderScreen from "../../components/common/Loader";
 
@@ -36,11 +25,12 @@ const MOCK_SPECIALTIES = [
   "Gynecology",
 ];
 
-export default function DoctorListingPage({ onNavigate }) {
+export default function DoctorListingPage() {
+  const navigate = useNavigate();
   const [selectedSpecialty, setSelectedSpecialty] = useState("All Specialties");
 
   // Queries
-  const { data, isLoading, isSuccess, isError, error } = useQuery({
+  const { data, isLoading, error } = useQuery({
     queryKey: ["items"],
     queryFn: medicalService.fetchData,
   });
@@ -81,7 +71,7 @@ export default function DoctorListingPage({ onNavigate }) {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => onNavigate("doctor-apply")}
+              onClick={() => navigate("/auth/doctor-apply")}
               className="bg-white/10 hover:bg-white/20 text-white border-white/30">
               Are you a licensed doctor? Join Our Network →
             </Button>
@@ -222,7 +212,7 @@ export default function DoctorListingPage({ onNavigate }) {
                 <Button
                   variant="primary"
                   size="sm"
-                  onClick={() => onNavigate("doctor-booking")}
+                  onClick={() => navigate(`/doctors/${doc._id}`)}
                   icon={Calendar}>
                   Book Appointment
                 </Button>

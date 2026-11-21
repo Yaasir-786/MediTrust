@@ -1,21 +1,10 @@
 import React, { useState } from "react";
-import {
-  Search,
-  Filter,
-  SlidersHorizontal,
-  Pill,
-  ShieldCheck,
-  Star,
-  ArrowRight,
-  ChevronDown,
-  Check,
-  Sparkles,
-  Zap,
-} from "lucide-react";
+import { Search, Pill, Sparkles, Zap } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import Card from "../../components/common/Card";
 import Badge from "../../components/common/Badge";
 import Button from "../../components/common/Button";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import medicalService from "../../services/medicalService";
 import LoaderScreen from "../../components/common/Loader";
 
@@ -35,13 +24,14 @@ const MOCK_CATEGORIES = [
   "Skin & Dermatology",
 ];
 
-export default function ProductListingPage({ onNavigate }) {
+export default function ProductListingPage() {
+  const navigate = useNavigate();
   const [selectedCategory, setSelectedCategory] = useState("All Products");
   const [searchText, setSearchText] = useState("");
   const [sortOrder, setSortOrder] = useState("Popularity");
 
   // Queries
-  const { data, isLoading, isSuccess, isError, error } = useQuery({
+  const { data, isLoading, error } = useQuery({
     queryKey: ["items"],
     queryFn: medicalService.fetchData,
   });
@@ -132,7 +122,7 @@ export default function ProductListingPage({ onNavigate }) {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => onNavigate("ai-prescription")}
+            onClick={() => navigate("/auth/ai-hub/prescription")}
             icon={Sparkles}
             className="border-indigo-200 text-indigo-700 hover:bg-indigo-50">
             Upload Prescription
@@ -185,7 +175,7 @@ export default function ProductListingPage({ onNavigate }) {
               <div>
                 {/* Product Image Area */}
                 <div
-                  onClick={() => onNavigate("product-detail")}
+                  onClick={() => navigate(`/pharmacy/${prod._id}`)}
                   className="relative rounded-xl overflow-hidden aspect-square mb-3 bg-slate-50 flex items-center justify-center p-4 cursor-pointer">
                   <img
                     src={prod.image}
@@ -203,7 +193,7 @@ export default function ProductListingPage({ onNavigate }) {
                 {/* Details */}
                 <div className="space-y-1">
                   <h3
-                    onClick={() => onNavigate("product-detail")}
+                    onClick={() => navigate(`/pharmacy/${prod._id}`)}
                     className="font-bold text-slate-900 text-sm hover:text-teal-700 transition-colors cursor-pointer line-clamp-1">
                     {prod.name}
                   </h3>
@@ -223,7 +213,7 @@ export default function ProductListingPage({ onNavigate }) {
                 <Button
                   variant="primary"
                   size="sm"
-                  onClick={() => onNavigate("product-detail")}
+                  onClick={() => navigate(`/pharmacy/${prod._id}`)}
                   className="shadow-xs">
                   Order Now
                 </Button>

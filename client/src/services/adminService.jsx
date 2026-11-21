@@ -69,6 +69,41 @@ const deleteProduct = async ({ token, productId }) => {
   return response.data;
 };
 
-const adminService = { fetchAdminData, addProduct, updateProduct, deleteProduct };
+const updateDoctor = async ({ token, doctorId, isVerified }) => {
+  const response = await axios.put(
+    `/api/admin/doctor/${doctorId}`,
+    { isVerified },
+    authHeaders(token),
+  );
+  return response.data;
+};
+
+const updatePathologist = async ({ token, pathologistId, isVerified }) => {
+  const response = await axios.put(
+    `/api/admin/pathologists/${pathologistId}`,
+    { isVerified },
+    authHeaders(token),
+  );
+  return response.data;
+};
+
+const updateOrder = async ({ token, orderId, status }) => {
+  const response = await axios.put(
+    `/api/admin/order/${orderId}`,
+    { status },
+    authHeaders(token),
+  );
+  return response.data;
+};
+
+const adminService = {
+  fetchAdminData,
+  addProduct,
+  updateProduct,
+  deleteProduct,
+  updateDoctor,
+  updatePathologist,
+  updateOrder,
+};
 
 export default adminService;

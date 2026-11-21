@@ -19,6 +19,11 @@ const fetchData = async () => {
   };
 };
 
-const medicalService = { fetchData };
+const fetchProduct = async (pid) => {
+  const response = await axios.get(`/api/products/${pid}`);
+  return response.data;
+};
+
+const medicalService = { fetchData, fetchProduct };
 
 export default medicalService;

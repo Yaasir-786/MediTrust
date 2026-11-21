@@ -1,17 +1,6 @@
 import React, { useState } from "react";
-import {
-  Search,
-  FlaskConical,
-  Clock,
-  ShieldCheck,
-  AlertCircle,
-  CheckCircle2,
-  Home,
-  Building2,
-  ArrowRight,
-  FileSpreadsheet,
-  Award,
-} from "lucide-react";
+import { Search, FlaskConical, Home } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import Card from "../../components/common/Card";
 import Badge from "../../components/common/Badge";
 import Button from "../../components/common/Button";
@@ -35,11 +24,12 @@ const MOCK_CATEGORIES = [
   "Infectious Disease",
 ];
 
-export default function LabTestListingPage({ onNavigate }) {
+export default function LabTestListingPage() {
+  const navigate = useNavigate();
   const [selectedCategory, setSelectedCategory] = useState("All Lab Tests");
 
   // Queries
-  const { data, isLoading, isSuccess, isError, error } = useQuery({
+  const { data, isLoading, error } = useQuery({
     queryKey: ["items"],
     queryFn: medicalService.fetchData,
   });
@@ -89,7 +79,7 @@ export default function LabTestListingPage({ onNavigate }) {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => onNavigate("pathologist-apply")}
+              onClick={() => navigate("/auth/pathologist-apply")}
               className="bg-white/10 hover:bg-white/20 text-white border-white/30">
               Are you an accredited laboratory? Join MediTrust Network →
             </Button>
@@ -173,7 +163,7 @@ export default function LabTestListingPage({ onNavigate }) {
                 <Button
                   variant="primary"
                   size="sm"
-                  onClick={() => onNavigate("lab-booking")}
+                  onClick={() => navigate(`/lab/${test._id}`)}
                   icon={FlaskConical}>
                   Book Test
                 </Button>

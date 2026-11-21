@@ -8,6 +8,7 @@ import {
   Calendar,
   Pill,
   FlaskConical,
+  Stethoscope,
   Sparkles,
   Package,
   ShieldAlert,
@@ -21,7 +22,7 @@ import { useNavigate } from "react-router-dom";
 import Button from "../common/Button";
 import { logoutUser } from "../../features/auth/authSlice";
 
-export default function Navbar({ currentView, onNavigate }) {
+export default function Navbar({ currentView }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const { user } = useSelector((state) => state.auth);
@@ -31,9 +32,14 @@ export default function Navbar({ currentView, onNavigate }) {
 
   const isAdmin =
     String(user?.userType ?? "").toUpperCase() === "ADMIN";
+  const isDoctor =
+    String(user?.userType ?? "").toUpperCase() === "DOCTOR";
+  const isPathologist =
+    String(user?.userType ?? "").toUpperCase() === "PATHOLOGIST";
 
   const handleNavigate = (route) => {
-    navigate(route);
+    navigate(route.startsWith("/") ? route : `/${route}`);
+    setMobileMenuOpen(false);
   };
 
   const handleLogout = () => {
@@ -51,6 +57,18 @@ export default function Navbar({ currentView, onNavigate }) {
         ...(!isAdmin
           ? [{ id: "auth/orders", label: "My Orders", icon: Package }]
           : []),
+        ...(isDoctor
+          ? [{ id: "auth/doctor-panel", label: "Doctor Panel", icon: Stethoscope }]
+          : []),
+        ...(isPathologist
+          ? [
+              {
+                id: "auth/pathologist-panel",
+                label: "Lab Panel",
+                icon: FlaskConical,
+              },
+            ]
+          : []),
         isAdmin
           ? { id: "auth/admin", label: "Admin", icon: ShieldAlert }
           : { id: "auth/dashboard", label: "Dashboard", icon: User },
@@ -60,11 +78,6 @@ export default function Navbar({ currentView, onNavigate }) {
         { id: "doctors", label: "Doctors", icon: Calendar },
         { id: "lab", label: "Lab Tests", icon: FlaskConical },
       ];
-
-  const handleNav = (viewId) => {
-    onNavigate(viewId);
-    setMobileMenuOpen(false);
-  };
 
   return (
     <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-slate-100 transition-all">

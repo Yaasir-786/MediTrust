@@ -12,6 +12,18 @@ const getMyOrders = async (token) => {
   return response.data ?? [];
 };
 
-const orderService = { getMyOrders };
+const createOrder = async ({ token, productId }) => {
+  if (!token) {
+    throw new Error("No auth token found. Please login again.");
+  }
+
+  const response = await axios.post(`/api/order/${productId}`, null, {
+    headers: { authorization: `Bearer ${token}` },
+  });
+
+  return response.data;
+};
+
+const orderService = { getMyOrders, createOrder };
 
 export default orderService;

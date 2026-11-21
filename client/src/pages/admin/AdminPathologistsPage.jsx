@@ -25,16 +25,20 @@ import Button from "../../components/common/Button";
 import Sidebar from "../../components/common/Sidebar";
 import AddProductModal from "./AddProductModal";
 import VerificationModal from "./VerificationModal";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import adminService from "../../services/adminService";
-import { useSelector } from "react-redux";
+import { useSelector, useDispatch } from "react-redux";
 import toast from "react-hot-toast";
 import LoaderScreen from "../../components/common/Loader";
 import AdminSidebar, { buildAdminCounts } from "../../components/admin/AdminSidebar";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
+import { logoutUser } from "../../features/auth/authSlice";
 
-export default function AdminPathologistsPage({ onNavigate }) {
+export default function AdminPathologistsPage() {
   const { user } = useSelector((state) => state.auth);
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   let { pathname } = useLocation();
   let currentPath = pathname.split("/")[pathname.split("/").length - 1];
@@ -48,6 +52,47 @@ export default function AdminPathologistsPage({ onNavigate }) {
     queryFn: () => adminService.fetchAdminData(user?.token),
     enabled: !!user?.token,
   });
+
+  const verifyMutation = useMutation({
+    mutationFn: ({ pathologistId, isVerified }) =>
+      adminService.updatePathologist({
+        token: user?.token,
+        pathologistId,
+        isVerified,
+      }),
+    onSuccess: (_, variables) => {
+      toast.success(
+        variables.isVerified
+          ? "Pathologist verified successfully."
+          : "Pathologist verification revoked.",
+      );
+      setVerificationTarget(null);
+      queryClient.invalidateQueries({ queryKey: ["admin-pathologists"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-overview"] });
+      queryClient.invalidateQueries({ queryKey: ["items"] });
+    },
+    onError: (err) => {
+      if (err?.response?.status === 401) {
+        localStorage.removeItem("user");
+        dispatch(logoutUser());
+        navigate("/login");
+        return;
+      }
+      toast.error(
+        err?.response?.data?.message ||
+          err?.message ||
+          "Could not update pathologist verification.",
+      );
+    },
+  });
+
+  const handleVerify = (isVerified) => {
+    if (!verificationTarget?._id) return;
+    verifyMutation.mutate({
+      pathologistId: verificationTarget._id,
+      isVerified,
+    });
+  };
 
   useEffect(() => {
     if (isError && error) {
@@ -156,8 +201,8 @@ export default function AdminPathologistsPage({ onNavigate }) {
         onClose={() => setVerificationTarget(null)}
         item={verificationTarget}
         type={verificationTarget?.type}
-        onApprove={() => setVerificationTarget(null)}
-        onReject={() => setVerificationTarget(null)}
+        onApprove={() => handleVerify(true)}
+        onReject={() => handleVerify(false)}
       />
     </div>
   );

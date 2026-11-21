@@ -24,7 +24,7 @@ import { useNavigate } from "react-router-dom";
 // Later replace with: api.auth.register({ name, email, phone, password })
 // ==========================================
 
-export default function RegisterPage({ onNavigate }) {
+export default function RegisterPage() {
   const { mutate, data, isPending, isError, isSuccess, error } = useMutation({
     mutationFn: (payload) => authService.registerUser(payload),
   });
@@ -78,7 +78,7 @@ export default function RegisterPage({ onNavigate }) {
         {/* Brand header */}
         <div className="text-center space-y-2">
           <div
-            onClick={() => onNavigate("landing")}
+            onClick={() => navigate("/")}
             className="inline-flex items-center gap-2 cursor-pointer group">
             <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-teal-600 to-teal-400 flex items-center justify-center text-white shadow-md shadow-teal-500/20 group-hover:scale-105 transition-transform">
               <HeartPulse className="w-7 h-7" />
