@@ -3,7 +3,7 @@ import {
   Users,
   Stethoscope,
   ShoppingBag,
-  DollarSign,
+  IndianRupee,
   Search,
   Plus,
   Edit,
@@ -30,6 +30,29 @@ const AVAILABILITY_FILTERS = [
   { id: "out-of-stock", label: "Out of Stock" },
   { id: "inactive", label: "Inactive" },
 ];
+
+// Orders with these statuses are not counted as revenue.
+const NON_REVENUE_STATUSES = ["cancelled"];
+const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+
+const formatRevenue = (value) =>
+  `₹${Number(value || 0).toLocaleString("en-IN", { maximumFractionDigits: 2 })}`;
+
+// Orders store only a product reference (single unit), so the amount is the
+// populated product's price.
+const orderAmount = (order) => Number(order?.product?.price ?? 0) || 0;
+
+const monthIndexOf = (value) => {
+  const date = new Date(value);
+  return date.getFullYear() * 12 + date.getMonth();
+};
+
+// Percent change from previous to current, or null when there is no baseline.
+const percentLabel = (current, previous) => {
+  if (!(previous > 0)) return null;
+  const percent = ((current - previous) / previous) * 100;
+  return `${percent >= 0 ? "+" : "-"}${Math.abs(percent).toFixed(1)}%`;
+};
 
 export default function AdminDashboardPage({ onNavigate }) {
   const { user } = useSelector((state) => state.auth);
@@ -110,20 +133,98 @@ export default function AdminDashboardPage({ onNavigate }) {
     data?.pathologists?.filter((path) => path.isVerified).length ?? 0;
   const totalOrders = data?.orders?.length ?? 0;
 
-  const MOCK_STATS = [
+  const now = new Date();
+  const currentMonthIndex = now.getFullYear() * 12 + now.getMonth();
+  const yearStart = new Date(now.getFullYear(), 0, 1);
+  const weekAgo = new Date(now.getTime() - WEEK_MS);
+
+  // Total Revenue: sum of product prices of non-cancelled orders.
+  const revenueOrders = (data?.orders ?? []).filter(
+    (order) => !NON_REVENUE_STATUSES.includes(order?.status),
+  );
+  const totalRevenue = revenueOrders.reduce(
+    (sum, order) => sum + orderAmount(order),
+    0,
+  );
+  const revenueForMonth = (monthsAgo) =>
+    revenueOrders.reduce(
+      (sum, order) =>
+        monthIndexOf(order?.createdAt) === currentMonthIndex - monthsAgo
+          ? sum + orderAmount(order)
+          : sum,
+      0,
+    );
+  const thisMonthRevenue = revenueForMonth(0);
+  const revenuePercent = percentLabel(thisMonthRevenue, revenueForMonth(1));
+  let revenueChange = "No sales yet this month";
+  if (revenuePercent) {
+    revenueChange = `${revenuePercent} vs last month`;
+  } else if (thisMonthRevenue > 0) {
+    revenueChange = `${formatRevenue(thisMonthRevenue)} this month`;
+  }
+
+  // Total Orders: orders created this month vs last month.
+  const ordersForMonth = (monthsAgo) =>
+    (data?.orders ?? []).filter(
+      (order) =>
+        monthIndexOf(order?.createdAt) === currentMonthIndex - monthsAgo,
+    ).length;
+  const thisMonthOrders = ordersForMonth(0);
+  const ordersPercent = percentLabel(thisMonthOrders, ordersForMonth(1));
+  let ordersChange = "No orders yet this month";
+  if (ordersPercent) {
+    ordersChange = `${ordersPercent} vs last month`;
+  } else if (thisMonthOrders > 0) {
+    ordersChange = `${thisMonthOrders} new this month`;
+  }
+
+  // Verified doctors / pathologists: the backend has no "verifiedAt" field and
+  // only the admin verification action modifies these records, so `updatedAt`
+  // of a verified record is its last verification time.
+  const verifiedThisWeek = (list) =>
+    (list ?? []).filter(
+      (item) => item?.isVerified && new Date(item?.updatedAt) >= weekAgo,
+    ).length;
+  const doctorsThisWeek = verifiedThisWeek(data?.doctors);
+  const doctorsChange =
+    doctorsThisWeek > 0
+      ? `+${doctorsThisWeek} verified this week`
+      : "No new verifications this week";
+  const pathologistsThisWeek = verifiedThisWeek(data?.pathologists);
+  const pathologistsChange =
+    pathologistsThisWeek > 0
+      ? `+${pathologistsThisWeek} verified this week`
+      : "No new verifications this week";
+
+  // Registered users: growth of the user base since 1 January.
+  const allUsers = data?.users ?? [];
+  const usersThisYear = allUsers.filter(
+    (u) => new Date(u?.createdAt) >= yearStart,
+  ).length;
+  const usersBeforeThisYear = allUsers.filter(
+    (u) => new Date(u?.createdAt) < yearStart,
+  ).length;
+  let usersChange = "No users yet";
+  if (usersBeforeThisYear > 0) {
+    usersChange = `+${((usersThisYear / usersBeforeThisYear) * 100).toFixed(1)}% year-to-date`;
+  } else if (usersThisYear > 0) {
+    usersChange = `${usersThisYear} joined this year`;
+  }
+
+  const dashboardStats = [
     {
       id: "revenue",
       label: "Total Revenue",
-      value: "₹184,500",
-      change: "+14.2% vs last month",
-      icon: DollarSign,
+      value: formatRevenue(totalRevenue),
+      change: revenueChange,
+      icon: IndianRupee,
       color: "text-emerald-600 bg-emerald-50",
     },
     {
       id: "orders",
       label: "Total Orders",
       value: totalOrders,
-      change: "+8.1% vs last month",
+      change: ordersChange,
       icon: ShoppingBag,
       color: "text-teal-600 bg-teal-50",
     },
@@ -131,7 +232,7 @@ export default function AdminDashboardPage({ onNavigate }) {
       id: "doctors",
       label: "Verified Doctors",
       value: verifiedDoctors,
-      change: "+24 new this week",
+      change: doctorsChange,
       icon: Stethoscope,
       color: "text-indigo-600 bg-indigo-50",
     },
@@ -139,7 +240,7 @@ export default function AdminDashboardPage({ onNavigate }) {
       id: "pathologists",
       label: "Verified Pathologists",
       value: verifiedPathologists,
-      change: "+24 new this week",
+      change: pathologistsChange,
       icon: Stethoscope,
       color: "text-indigo-600 bg-indigo-50",
     },
@@ -147,7 +248,7 @@ export default function AdminDashboardPage({ onNavigate }) {
       id: "users",
       label: "Total Registered Users",
       value: data?.users?.length ?? 0,
-      change: "+18.5% year-to-date",
+      change: usersChange,
       icon: Users,
       color: "text-sky-600 bg-sky-50",
     },
@@ -240,7 +341,7 @@ export default function AdminDashboardPage({ onNavigate }) {
 
         {/* Top 4 Stat Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-          {MOCK_STATS.map((stat) => {
+          {dashboardStats.map((stat) => {
             const Icon = stat.icon;
             return (
               <Card key={stat.id} className="p-5 border-slate-200">

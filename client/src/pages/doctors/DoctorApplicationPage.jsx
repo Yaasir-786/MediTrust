@@ -1,8 +1,6 @@
 import React, { useState } from "react";
 import {
   Check,
-  Upload,
-  FileText,
   ShieldCheck,
   Building,
   Mail,
@@ -22,10 +20,9 @@ import { logoutUser } from "../../features/auth/authSlice";
 import toast from "react-hot-toast";
 
 const STEPS = [
-  { id: 1, name: "Personal Info", desc: "Identity & Contacts" },
-  { id: 2, name: "License & Board", desc: "State Medical Board" },
-  { id: 3, name: "Clinical Specialty", desc: "Practice & Experience" },
-  { id: 4, name: "Verification Files", desc: "Credential Dropzone" },
+  { id: 1, name: "Contact & Clinic", desc: "Identity & Contacts" },
+  { id: 2, name: "Qualification & Specialty", desc: "Practice & Experience" },
+  { id: 3, name: "Availability", desc: "Working Hours & Days" },
 ];
 
 const WEEKDAYS = [
@@ -47,21 +44,14 @@ export default function DoctorApplicationPage() {
   const [isSubmitted, setIsSubmitted] = useState(false);
 
   const [formData, setFormData] = useState({
-    firstName: "",
-    lastName: "",
     email: "",
     phone: "",
     clinicName: "",
     address: "",
-    licenseNumber: "",
-    licensingState: "",
-    npi: "",
-    dea: "",
     qualification: "",
     specialization: "Cardiology",
     experience: "",
     consultationFee: "",
-    bio: "",
     workingHoursStart: "09:00",
     workingHoursEnd: "17:00",
     workingDays: [],
@@ -106,6 +96,24 @@ export default function DoctorApplicationPage() {
   });
 
   const handleSubmit = () => {
+    const requiredFields = [
+      formData.clinicName.trim(),
+      formData.address.trim(),
+      formData.email.trim(),
+      formData.phone.trim(),
+      formData.qualification.trim(),
+      String(formData.experience).trim(),
+      String(formData.consultationFee).trim(),
+    ];
+
+    if (
+      requiredFields.some((value) => !value) ||
+      formData.workingDays.length === 0
+    ) {
+      toast.error("Please fill all the details.");
+      return;
+    }
+
     applyMutation.mutate({
       clinicName: formData.clinicName.trim(),
       address: formData.address.trim(),
@@ -141,7 +149,7 @@ export default function DoctorApplicationPage() {
 
       {/* Step Progress Indicator */}
       <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
           {STEPS.map((s) => {
             const isCompleted = currentStep > s.id;
             const isCurrent = currentStep === s.id;
@@ -188,12 +196,12 @@ export default function DoctorApplicationPage() {
               <ShieldCheck className="w-8 h-8" />
             </div>
             <h2 className="text-2xl font-bold text-slate-900">
-              Application Submitted for Credentialing
+              Application Submitted for Verification
             </h2>
             <p className="text-xs sm:text-sm text-slate-600 max-w-md mx-auto">
               Thank you for applying to the MediTrust Clinical Network. Our
-              medical verification board will review your license and
-              credentials within 24 to 48 hours.
+              medical verification board will review your submitted details
+              within 24 to 48 hours.
             </p>
             <div className="pt-4">
               <Button
@@ -210,24 +218,8 @@ export default function DoctorApplicationPage() {
             {currentStep === 1 && (
               <div className="space-y-4 animate-in fade-in duration-200">
                 <h3 className="text-base font-bold text-slate-900 pb-2 border-b border-slate-100">
-                  Step 1: Personal & Legal Contact Information
+                  Step 1: Contact & Clinic Information
                 </h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <Input
-                    label="First Name"
-                    name="firstName"
-                    value={formData.firstName}
-                    onChange={handleChange}
-                    required
-                  />
-                  <Input
-                    label="Last Name"
-                    name="lastName"
-                    value={formData.lastName}
-                    onChange={handleChange}
-                    required
-                  />
-                </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <Input
                     label="Professional Email"
@@ -270,55 +262,15 @@ export default function DoctorApplicationPage() {
             {currentStep === 2 && (
               <div className="space-y-4 animate-in fade-in duration-200">
                 <h3 className="text-base font-bold text-slate-900 pb-2 border-b border-slate-100">
-                  Step 2: State Medical Board & Licensure
+                  Step 2: Qualification, Specialty & Experience
                 </h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <Input
-                    label="Medical License Number"
-                    name="licenseNumber"
-                    value={formData.licenseNumber}
-                    onChange={handleChange}
-                    required
-                  />
-                  <Input
-                    label="Licensing State"
-                    name="licensingState"
-                    value={formData.licensingState}
-                    onChange={handleChange}
-                    required
-                  />
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <Input
-                    label="National Provider Identifier (NPI)"
-                    name="npi"
-                    value={formData.npi}
-                    onChange={handleChange}
-                    required
-                  />
-                  <Input
-                    label="DEA Registration Number"
-                    name="dea"
-                    value={formData.dea}
-                    onChange={handleChange}
-                  />
-                </div>
                 <Input
-                  label="Medical School of Graduation"
+                  label="Medical Qualification (e.g. MBBS, MD)"
                   name="qualification"
                   value={formData.qualification}
                   onChange={handleChange}
                   required
                 />
-              </div>
-            )}
-
-            {/* STEP 3 */}
-            {currentStep === 3 && (
-              <div className="space-y-4 animate-in fade-in duration-200">
-                <h3 className="text-base font-bold text-slate-900 pb-2 border-b border-slate-100">
-                  Step 3: Clinical Specialization & Experience
-                </h3>
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
                     Primary Medical Specialty *
@@ -354,6 +306,15 @@ export default function DoctorApplicationPage() {
                     required
                   />
                 </div>
+              </div>
+            )}
+
+            {/* STEP 3 */}
+            {currentStep === 3 && (
+              <div className="space-y-4 animate-in fade-in duration-200">
+                <h3 className="text-base font-bold text-slate-900 pb-2 border-b border-slate-100">
+                  Step 3: Availability
+                </h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <Input
                     label="Working Hours Start"
@@ -392,78 +353,6 @@ export default function DoctorApplicationPage() {
                     ))}
                   </div>
                 </div>
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
-                    Professional Bio (Shown to Patients)
-                  </label>
-                  <textarea
-                    rows={3}
-                    name="bio"
-                    value={formData.bio}
-                    onChange={handleChange}
-                    className="w-full rounded-xl border border-slate-200 p-3 text-sm focus:outline-none focus:border-teal-500"
-                  />
-                </div>
-              </div>
-            )}
-
-            {/* STEP 4 */}
-            {currentStep === 4 && (
-              <div className="space-y-5 animate-in fade-in duration-200">
-                <h3 className="text-base font-bold text-slate-900 pb-2 border-b border-slate-100">
-                  Step 4: Upload Credential Documents
-                </h3>
-                <p className="text-xs text-slate-500">
-                  Please upload high-resolution PDF or JPG scans of your state
-                  medical license and board certifications.
-                </p>
-
-                {/* Dropzone visual */}
-                <div className="border-2 border-dashed border-teal-300 rounded-2xl p-8 bg-teal-50/30 text-center hover:bg-teal-50/60 transition-colors cursor-pointer space-y-3">
-                  <div className="w-12 h-12 rounded-full bg-teal-100 text-teal-700 flex items-center justify-center mx-auto">
-                    <Upload className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-bold text-slate-800">
-                      Drag & Drop credentials here, or{" "}
-                      <span className="text-teal-600 underline">
-                        Browse Files
-                      </span>
-                    </p>
-                    <p className="text-xs text-slate-400 mt-1">
-                      Supports PDF, PNG, JPG up to 25MB
-                    </p>
-                  </div>
-                </div>
-
-                {/* Uploaded mock files list */}
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs">
-                    <div className="flex items-center gap-2">
-                      <FileText className="w-4 h-4 text-teal-600" />
-                      <span className="font-semibold text-slate-800">
-                        State_Medical_License_2026.pdf
-                      </span>
-                      <span className="text-slate-400">(2.4 MB)</span>
-                    </div>
-                    <Badge variant="success" size="sm">
-                      Ready to submit
-                    </Badge>
-                  </div>
-
-                  <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs">
-                    <div className="flex items-center gap-2">
-                      <FileText className="w-4 h-4 text-teal-600" />
-                      <span className="font-semibold text-slate-800">
-                        Board_Certification_Cardiology.pdf
-                      </span>
-                      <span className="text-slate-400">(1.8 MB)</span>
-                    </div>
-                    <Badge variant="success" size="sm">
-                      Ready to submit
-                    </Badge>
-                  </div>
-                </div>
               </div>
             )}
 
@@ -481,7 +370,7 @@ export default function DoctorApplicationPage() {
                 <div />
               )}
 
-              {currentStep < 4 ? (
+              {currentStep < STEPS.length ? (
                 <Button
                   variant="primary"
                   size="md"

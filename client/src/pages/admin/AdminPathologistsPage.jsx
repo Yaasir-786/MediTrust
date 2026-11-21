@@ -164,7 +164,11 @@ export default function AdminPathologistsPage() {
                     <td className="py-3 px-4 font-semibold text-slate-900">
                       {row.laboratoryName}
                     </td>
-                    <td className="py-3 px-4">{row.specialization}</td>
+                    <td className="py-3 px-4">
+                      {Array.isArray(row.specialization)
+                        ? row.specialization.join(", ")
+                        : row.specialization}
+                    </td>
                     <td className="py-3 px-4">{row.laboratoryAddress}</td>
                     <td className="py-3 px-4">
                       <Badge
@@ -184,7 +188,7 @@ export default function AdminPathologistsPage() {
                             type: "Pathologist",
                           })
                         }>
-                        Inspect Audit
+                        Review Details
                       </Button>
                     </td>
                   </tr>

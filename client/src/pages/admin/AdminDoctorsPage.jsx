@@ -146,9 +146,9 @@ export default function AdminDoctorsPage() {
                   <th className="py-3 px-4">Clinic Name</th>
                   <th className="py-3 px-4">Specialty</th>
                   <th className="py-3 px-4">Address</th>
-                  <th className="py-3 px-4">State License</th>
+                  <th className="py-3 px-4">Qualification</th>
                   <th className="py-3 px-4">Verification</th>
-                  <th className="py-3 px-4 text-right">Licensure Review</th>
+                  <th className="py-3 px-4 text-right">Review</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -160,7 +160,9 @@ export default function AdminDoctorsPage() {
                       {row.clinicName}
                     </td>
                     <td className="py-3 px-4 text-teal-700 font-medium">
-                      {row.specialization}
+                      {Array.isArray(row.specialization)
+                        ? row.specialization.join(", ")
+                        : row.specialization}
                     </td>
                     <td className="py-3 px-4">{row.address}</td>
                     <td className="py-3 px-4 font-mono text-[11px]">
@@ -176,16 +178,12 @@ export default function AdminDoctorsPage() {
                     </td>
                     <td className="py-3 px-4 text-right">
                       <Button
-                        variant={
-                          row.status === "Verified" ? "outline" : "primary"
-                        }
+                        variant={row.isVerified ? "outline" : "primary"}
                         size="sm"
                         onClick={() =>
                           setVerificationTarget({ ...row, type: "Doctor" })
                         }>
-                        {row.status === "Verified"
-                          ? "View Credentials"
-                          : "Audit & Approve"}
+                        {row.isVerified ? "View Details" : "Audit & Approve"}
                       </Button>
                     </td>
                   </tr>
