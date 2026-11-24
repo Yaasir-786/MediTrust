@@ -13,18 +13,6 @@ import LoaderScreen from "../../components/common/Loader";
 // Later replace with: api.doctors.getAll({ specialty, search })
 // ==========================================
 
-const MOCK_SPECIALTIES = [
-  "All Specialties",
-  "Cardiology",
-  "Dermatology",
-  "Pediatrics",
-  "General Physician",
-  "Neurology",
-  "Orthopedics",
-  "Psychiatry",
-  "Gynecology",
-];
-
 export default function DoctorListingPage() {
   const navigate = useNavigate();
   const [selectedSpecialty, setSelectedSpecialty] = useState("All Specialties");
@@ -102,26 +90,6 @@ export default function DoctorListingPage() {
         <Button variant="primary" size="md" className="w-full md:w-auto">
           Search Doctors
         </Button>
-      </div>
-
-      {/* Specialty Filter Chips */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-2 no-scrollbar">
-        {MOCK_SPECIALTIES.map((spec) => {
-          const isActive = selectedSpecialty === spec;
-          return (
-            <button
-              key={spec}
-              onClick={() => setSelectedSpecialty(spec)}
-              type="button"
-              className={`px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all duration-200 ${
-                isActive
-                  ? "bg-teal-600 text-white shadow-xs"
-                  : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50"
-              }`}>
-              {spec}
-            </button>
-          );
-        })}
       </div>
 
       {/* Doctors Grid */}

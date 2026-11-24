@@ -13,17 +13,6 @@ import LoaderScreen from "../../components/common/Loader";
 // Later replace with: api.labTests.getAll({ category, search })
 // ==========================================
 
-const MOCK_CATEGORIES = [
-  "All Lab Tests",
-  "Full Body Checkups",
-  "Diabetes & Sugar",
-  "Thyroid Profile",
-  "Lipid & Heart Health",
-  "Liver & Renal Function",
-  "Vitamin Deficiencies",
-  "Infectious Disease",
-];
-
 export default function LabTestListingPage() {
   const navigate = useNavigate();
   const [selectedCategory, setSelectedCategory] = useState("All Lab Tests");
@@ -103,26 +92,6 @@ export default function LabTestListingPage() {
         <Button variant="primary" size="md" className="w-full md:w-auto">
           Search Tests
         </Button>
-      </div>
-
-      {/* Category Filter Chips */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-2 no-scrollbar">
-        {MOCK_CATEGORIES.map((cat) => {
-          const isActive = selectedCategory === cat;
-          return (
-            <button
-              key={cat}
-              onClick={() => setSelectedCategory(cat)}
-              type="button"
-              className={`px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all duration-200 ${
-                isActive
-                  ? "bg-teal-600 text-white shadow-xs"
-                  : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50"
-              }`}>
-              {cat}
-            </button>
-          );
-        })}
       </div>
 
       {/* Lab Tests Grid */}

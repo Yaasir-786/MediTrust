@@ -13,17 +13,6 @@ import LoaderScreen from "../../components/common/Loader";
 // Later replace with: api.products.getAll({ category, search, sort })
 // ==========================================
 
-const MOCK_CATEGORIES = [
-  "All Products",
-  "Prescription Drugs",
-  "Pain Relief & OTC",
-  "Vitamins & Nutrition",
-  "Diabetes Management",
-  "First Aid & Surgical",
-  "Cardiac Care",
-  "Skin & Dermatology",
-];
-
 export default function ProductListingPage() {
   const navigate = useNavigate();
   const [selectedCategory, setSelectedCategory] = useState("All Products");
@@ -130,26 +119,6 @@ export default function ProductListingPage() {
         </div>
       </div>
 
-      {/* Category Chips Bar */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-2 no-scrollbar">
-        {MOCK_CATEGORIES.map((cat) => {
-          const isActive = selectedCategory === cat;
-          return (
-            <button
-              key={cat}
-              onClick={() => setSelectedCategory(cat)}
-              type="button"
-              className={`px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all duration-200 ${
-                isActive
-                  ? "bg-teal-600 text-white shadow-xs"
-                  : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50"
-              }`}>
-              {cat}
-            </button>
-          );
-        })}
-      </div>
-
       {/* Main Grid of Products */}
       <div>
         <div className="flex items-center justify-between mb-4">
@@ -226,7 +195,8 @@ export default function ProductListingPage() {
       {/* Pagination / Load More UI */}
       <div className="pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-slate-200">
         <p className="text-xs text-slate-500">
-          Showing all {visibleMedicines.length} of {allMedicines.length} medicines
+          Showing all {visibleMedicines.length} of {allMedicines.length}{" "}
+          medicines
         </p>
       </div>
     </div>
